@@ -1,0 +1,319 @@
+/* ── Dashboard Styles ── */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: var(--space-5);
+}
+
+/* ── Gantt Chart ── */
+.gantt-body {
+    padding: var(--space-4) !important;
+}
+
+.gantt-chart {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.gantt-row {
+    display: grid;
+    grid-template-columns: 200px 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.gantt-row:last-child {
+    border-bottom: none;
+}
+
+.gantt-label {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.gantt-project {
+    font-size: var(--font-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gantt-meta {
+    font-size: var(--font-xs);
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gantt-bar-wrapper {
+    height: 28px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.gantt-bar {
+    height: 100%;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-2);
+    min-width: 60px;
+    transition: width 0.5s ease;
+}
+
+.gantt-bar.status-queue {
+    background: var(--status-queue);
+}
+
+.gantt-bar.status-in-progress {
+    background: var(--status-in-progress);
+}
+
+.gantt-bar.status-review {
+    background: var(--status-review);
+}
+
+.gantt-bar.status-needs-fix {
+    background: var(--status-needs-fix);
+}
+
+/* Job Type Gantt Bars */
+.gantt-bar.type-install { background: #dc2626; }
+.gantt-bar.type-move { background: #2563eb; }
+.gantt-bar.type-load { background: #059669; }
+.gantt-bar.type-warehouse { background: #7c3aed; }
+.gantt-bar.type-prep { background: #ea580c; }
+.gantt-bar.type-marking { background: #db2777; }
+.gantt-bar.type-other { background: #4b5563; }
+
+.critical-item {
+    transition: background var(--transition-fast);
+}
+
+.critical-item:hover {
+    background: var(--bg-hover) !important;
+}
+
+/* Period Selector */
+.period-selector {
+    display: flex;
+    background: var(--bg-tertiary);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    gap: 4px;
+}
+
+.period-btn {
+    padding: 6px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.period-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.period-btn.active {
+    background: var(--brand-primary);
+    color: #fff;
+    box-shadow: var(--shadow-sm);
+}
+
+.custom-range-picker input[type="date"] {
+    border: none;
+    background: transparent;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    width: 110px;
+}
+
+.custom-range-picker input[type="date"]:focus {
+    box-shadow: none;
+}
+
+.gantt-bar-text {
+    font-size: 10px;
+    color: #fff;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Chart Container ── */
+.chart-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 260px;
+}
+
+/* ── Heatmap Grid ── */
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-2);
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.heatmap-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-1);
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+    transition: all var(--transition-fast);
+    position: relative;
+    background: var(--bg-secondary);
+}
+
+.heatmap-cell:hover {
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.heatmap-cell.overloaded {
+    border-color: var(--status-needs-fix);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.heatmap-cell.busy {
+    border-color: var(--status-review);
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.heatmap-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-sm);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.heatmap-info {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+}
+
+.heatmap-name {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.heatmap-hours {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+.heatmap-indicator {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+}
+
+.heatmap-indicator.idle {
+    background: var(--text-tertiary);
+}
+
+.heatmap-indicator.normal {
+    background: var(--status-completed);
+}
+
+.heatmap-indicator.busy {
+    background: var(--status-review);
+}
+
+.heatmap-indicator.overloaded {
+    background: var(--status-needs-fix);
+}
+
+.heatmap-legend {
+    display: flex;
+    gap: var(--space-4);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-primary);
+    font-size: var(--font-xs);
+    color: var(--text-tertiary);
+}
+
+.heatmap-legend span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    display: inline-block;
+}
+
+.legend-dot.idle {
+    background: var(--text-tertiary);
+}
+
+.legend-dot.normal {
+    background: var(--status-completed);
+}
+
+.legend-dot.busy {
+    background: var(--status-review);
+}
+
+.legend-dot.overloaded {
+    background: var(--status-needs-fix);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .gantt-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-1);
+    }
+}
