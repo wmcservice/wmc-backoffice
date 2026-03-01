@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Search, Edit3, Trash2, User, Clock, Briefcase, Eye, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, User, Clock, Briefcase, Eye, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Upload, Download } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { getStaff, saveStaffMember, deleteStaffMember, getAllocationsByStaff, getJobs } from '../data/store';
 import { createStaff, STAFF_ROLES, STAFF_SKILLS } from '../data/models';
 import { calculateOvertime, calculateDailyPay } from '../utils/overtime';
 import { statusToKey, getRoleColor } from '../utils/helpers';
+import { read, utils, writeFile } from 'xlsx';
 import './Staff.css';
 
 export default function Staff() {
@@ -160,6 +161,65 @@ export default function Staff() {
         }
     };
 
+    const handleImportStaff = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            setLoading(true);
+            const data = await file.arrayBuffer();
+            const workbook = read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = utils.sheet_to_json(worksheet);
+
+            const newStaff = jsonData.map(row => ({
+                fingerprint_id: String(row['รหัสพนักงาน'] || row.fingerprintId || ''),
+                nickname: String(row['ชื่อเล่น'] || row.nickname || ''),
+                full_name: row['ชื่อ-นามสกุล'] || row.fullName || '',
+                role: row['ตำแหน่ง'] || row.role || 'พนักงาน',
+                primary_skill: row['ทักษะหลัก'] || row.primarySkill || 'ติดตั้ง',
+                phone: String(row['เบอร์โทร'] || row.phone || ''),
+                is_active: true
+            })).filter(s => s.nickname);
+
+            if (newStaff.length === 0) {
+                alert('ไม่พบข้อมูลพนักงานที่ถูกต้อง');
+                setLoading(false);
+                return;
+            }
+
+            if (confirm(`พบข้อมูลพนักงาน ${newStaff.length} คน ต้องการนำเข้าข้อมูลใช่หรือไม่?`)) {
+                const { error } = await supabase.from('staff').insert(newStaff);
+                if (error) throw error;
+                alert('นำเข้าข้อมูลพนักงานเรียบร้อยแล้ว!');
+                fetchData();
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            alert('เกิดข้อผิดพลาดในการนำเข้าไฟล์');
+        } finally {
+            setLoading(false);
+            e.target.value = '';
+        }
+    };
+
+    const handleDownloadTemplate = () => {
+        const templateData = [
+            {
+                'รหัสพนักงาน': 'WMC-001',
+                'ชื่อเล่น': 'ตัวอย่าง',
+                'ชื่อ-นามสกุล': 'นายทดสอบ ระบบ',
+                'ตำแหน่ง': 'พนักงาน',
+                'ทักษะหลัก': 'ติดตั้ง',
+                'เบอร์โทร': '0812345678'
+            }
+        ];
+        const worksheet = utils.sheet_to_json(templateData); // Fix: this should be json_to_sheet
+        const workbook = utils.book_new();
+        utils.book_append_sheet(workbook, utils.json_to_sheet(templateData), 'Template');
+        writeFile(workbook, 'wmc-staff-template.xlsx');
+    };
+
     const getStaffStats = (staffId) => {
         const staffJobs = jobs.filter(j => j.assignedStaffIds?.includes(staffId));
         return { jobCount: staffJobs.length };
@@ -180,9 +240,18 @@ export default function Staff() {
                     <h1>รายชื่อพนักงาน</h1>
                     <p className="subtitle">มีพนักงานทั้งหมด {staffList.length} คน • กำลังปฏิบัติงาน {staffList.filter(s => s.isActive).length} คน</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => { setEditingStaff(null); setShowModal(true); }}>
-                    <Plus size={16} /> เพิ่มพนักงาน
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-secondary" onClick={handleDownloadTemplate}>
+                        <Download size={16} /> Template
+                    </button>
+                    <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+                        <Upload size={16} /> Import Excel
+                        <input type="file" accept=".xlsx, .xls" onChange={handleImportStaff} style={{ display: 'none' }} />
+                    </label>
+                    <button className="btn btn-primary" onClick={() => { setEditingStaff(null); setShowModal(true); }}>
+                        <Plus size={16} /> เพิ่มพนักงาน
+                    </button>
+                </div>
             </div>
 
             {/* Filters */}
