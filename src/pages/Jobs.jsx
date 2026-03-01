@@ -315,14 +315,48 @@ export default function Jobs() {
                 return;
             }
 
-            if (confirm(`พบข้อมูลงาน ${newJobs.length} รายการ ต้องการนำเข้าและเขียนทับข้อมูลเดิมหรือไม่?`)) {
-                importJobs(newJobs);
-                refresh();
-                alert('นำเข้าข้อมูลงานเรียบร้อยแล้ว!');
+            if (confirm(`พบข้อมูลงาน ${newJobs.length} รายการ ต้องการนำเข้าข้อมูลเหล่านี้ใช่หรือไม่?`)) {
+                setLoading(true);
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const job of newJobs) {
+                    try {
+                        const dbData = {
+                            qt_number: job.qtNumber,
+                            project_name: job.projectName,
+                            client_name: job.clientName,
+                            job_type: job.jobType,
+                            status: job.status,
+                            start_date: job.startDate,
+                            end_date: job.endDate,
+                            default_check_in: job.defaultCheckIn,
+                            default_check_out: job.defaultCheckOut,
+                            priority: job.priority,
+                            notes: job.notes,
+                            created_by: job.createdBy,
+                            overall_progress: job.overallProgress,
+                            current_issues: job.currentIssues,
+                            updated_at: new Date().toISOString()
+                        };
+
+                        const { error } = await supabase.from('jobs').insert([dbData]);
+                        if (error) throw error;
+                        successCount++;
+                    } catch (err) {
+                        console.error('Error importing single job:', err);
+                        errorCount++;
+                    }
+                }
+
+                await fetchData();
+                alert(`นำเข้าข้อมูลเรียบร้อย! สำเร็จ ${successCount} รายการ${errorCount > 0 ? `, ผิดพลาด ${errorCount} รายการ` : ''}`);
             }
         } catch (error) {
             console.error("Import Error:", error);
             alert('เกิดข้อผิดพลาดในการนำเข้าไฟล์');
+        } finally {
+            setLoading(false);
         }
         e.target.value = '';
     };
