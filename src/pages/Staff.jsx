@@ -18,6 +18,9 @@ export default function Staff() {
     const [selectedStaff, setSelectedStaff] = useState(null);
     const [jobs, setJobs] = useState([]);
     
+    // Multi-select state
+    const [selectedIds, setSelectedIds] = useState([]);
+    
     // Sorting state
     const [sortConfig, setSortOrder] = useState({ key: 'id', direction: 'asc' });
 
@@ -50,6 +53,7 @@ export default function Staff() {
             }));
 
             setStaffList(formattedStaff);
+            setSelectedIds([]); // Clear selection after fetch
 
             // Fetch Jobs
             setJobs(getJobs());
@@ -100,6 +104,43 @@ export default function Staff() {
 
         return result;
     }, [staffList, search, roleFilter, sortConfig]);
+
+    // Multi-select handlers
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filtered.length && filtered.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filtered.map(s => s.id));
+        }
+    };
+
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkDelete = async () => {
+        if (!selectedIds.length) return;
+        if (confirm(`คุณต้องการลบพนักงานที่เลือกทั้ง ${selectedIds.length} คนใช่หรือไม่?`)) {
+            try {
+                setLoading(true);
+                const { error } = await supabase
+                    .from('staff')
+                    .delete()
+                    .in('id', selectedIds);
+                
+                if (error) throw error;
+                alert('ลบข้อมูลพนักงานเรียบร้อยแล้ว');
+                fetchData();
+            } catch (error) {
+                console.error('Bulk delete error:', error);
+                alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
 
     const SortIcon = ({ columnKey }) => {
         if (sortConfig.key !== columnKey) return <ArrowUpDown size={14} style={{ marginLeft: '4px', opacity: 0.3 }} />;
@@ -280,6 +321,11 @@ export default function Staff() {
                     <p className="subtitle">มีพนักงานทั้งหมด {staffList.length} คน • กำลังปฏิบัติงาน {staffList.filter(s => s.isActive).length} คน</p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                    {selectedIds.length > 0 && (
+                        <button className="btn btn-danger" onClick={handleBulkDelete}>
+                            <Trash2 size={16} /> ลบที่เลือก ({selectedIds.length})
+                        </button>
+                    )}
                     <button className="btn btn-secondary" onClick={handleDownloadTemplate}>
                         <Download size={16} /> Template
                     </button>
@@ -317,6 +363,13 @@ export default function Staff() {
                     <table>
                         <thead>
                             <tr>
+                                <th style={{ width: '40px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </th>
                                 <th onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>
                                     <div style={{ display: 'flex', alignItems: 'center' }}>รหัสพนักงาน <SortIcon columnKey="id" /></div>
                                 </th>
@@ -339,13 +392,21 @@ export default function Staff() {
                         <tbody>
                             {filtered.map(member => {
                                 const stats = getStaffStats(member.id);
+                                const isSelected = selectedIds.includes(member.id);
                                 return (
                                     <tr
                                         key={member.id}
                                         className={selectedStaff?.id === member.id ? 'active-row' : ''}
-                                        style={{ cursor: 'pointer' }}
+                                        style={{ cursor: 'pointer', backgroundColor: isSelected ? 'var(--bg-tertiary)' : '' }}
                                         onClick={() => setSelectedStaff(member)}
                                     >
+                                        <td onClick={(e) => e.stopPropagation()}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={isSelected}
+                                                onChange={() => toggleSelect(member.id)}
+                                            />
+                                        </td>
                                         <td style={{ fontWeight: 600 }}>{member.fingerprintId || member.id}</td>
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

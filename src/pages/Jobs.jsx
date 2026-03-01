@@ -23,6 +23,9 @@ export default function Jobs() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [detailJob, setDetailJob] = useState(null);
     const [staff, setStaff] = useState([]);
+    
+    // Multi-select state
+    const [selectedIds, setSelectedIds] = useState([]);
 
     useEffect(() => {
         fetchData();
@@ -96,6 +99,7 @@ export default function Jobs() {
             }));
 
             setJobs(formatted);
+            setSelectedIds([]); // Clear selection after fetch
         } catch (error) {
             console.error('Error fetching jobs:', error);
         } finally {
@@ -122,6 +126,43 @@ export default function Jobs() {
             return matchSearch && matchStatus && matchType && matchDateFrom && matchDateTo;
         });
     }, [jobs, search, statusFilter, typeFilter, dateFrom, dateTo]);
+
+    // Multi-select handlers
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filtered.length && filtered.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filtered.map(j => j.id));
+        }
+    };
+
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkDelete = async () => {
+        if (!selectedIds.length) return;
+        if (confirm(`คุณต้องการลบงานที่เลือกทั้ง ${selectedIds.length} รายการใช่หรือไม่?`)) {
+            try {
+                setLoading(true);
+                const { error } = await supabase
+                    .from('jobs')
+                    .delete()
+                    .in('id', selectedIds);
+                
+                if (error) throw error;
+                alert('ลบข้อมูลเรียบร้อยแล้ว');
+                fetchData();
+            } catch (error) {
+                console.error('Bulk delete error:', error);
+                alert('เกิดข้อผิดพลาดในการลบข้อมูล');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
 
     const handleSave = async (job) => {
         try {
@@ -441,6 +482,11 @@ export default function Jobs() {
                     <p className="subtitle">มีงานทั้งหมด {jobs.length} รายการ • แสดงอยู่ {filtered.length} รายการ</p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                    {selectedIds.length > 0 && (
+                        <button className="btn btn-danger" onClick={handleBulkDelete}>
+                            <Trash2 size={16} /> ลบที่เลือก ({selectedIds.length})
+                        </button>
+                    )}
                     <button className="btn btn-secondary" onClick={handleDownloadTemplate} title="ดาวน์โหลดไฟล์ตัวอย่าง">
                         <Download size={16} /> Template
                     </button>
@@ -502,6 +548,13 @@ export default function Jobs() {
                     <table className="jobs-table">
                         <thead>
                             <tr>
+                                <th style={{ width: '40px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </th>
                                 <th>เลขที่ QT</th>
                                 <th>ชื่อโปรเจกต์</th>
                                 <th>ลูกค้า</th>
@@ -517,9 +570,21 @@ export default function Jobs() {
                                 const statusClass = statusToKey(job.status);
                                 const typeClass = jobTypeToKey(job.jobType);
                                 const isBlocked = job.currentIssues && job.currentIssues.trim() !== '';
+                                const isSelected = selectedIds.includes(job.id);
 
                                 return (
-                                    <tr key={job.id} onClick={() => openDetail(job)} style={{ cursor: 'pointer' }}>
+                                    <tr 
+                                        key={job.id} 
+                                        onClick={() => openDetail(job)} 
+                                        style={{ cursor: 'pointer', backgroundColor: isSelected ? 'var(--bg-tertiary)' : '' }}
+                                    >
+                                        <td onClick={(e) => e.stopPropagation()}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={isSelected}
+                                                onChange={() => toggleSelect(job.id)}
+                                            />
+                                        </td>
                                         <td style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '12px' }}>{job.qtNumber || '-'}</td>
                                         <td>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
