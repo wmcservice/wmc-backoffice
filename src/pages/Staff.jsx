@@ -189,9 +189,48 @@ export default function Staff() {
             }
 
             if (confirm(`พบข้อมูลพนักงาน ${newStaff.length} คน ต้องการนำเข้าข้อมูลใช่หรือไม่?`)) {
-                const { error } = await supabase.from('staff').insert(newStaff);
-                if (error) throw error;
-                alert('นำเข้าข้อมูลพนักงานเรียบร้อยแล้ว!');
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const member of newStaff) {
+                    try {
+                        // Check if staff with this fingerprint ID already exists
+                        if (member.fingerprint_id && member.fingerprint_id.trim() !== '') {
+                            const { data: existing } = await supabase
+                                .from('staff')
+                                .select('id')
+                                .eq('fingerprint_id', member.fingerprint_id)
+                                .maybeSingle();
+
+                            if (existing) {
+                                // Update existing
+                                const { error } = await supabase
+                                    .from('staff')
+                                    .update(member)
+                                    .eq('id', existing.id);
+                                if (error) throw error;
+                            } else {
+                                // Insert new
+                                const { error } = await supabase
+                                    .from('staff')
+                                    .insert([member]);
+                                if (error) throw error;
+                            }
+                        } else {
+                            // No ID, just insert
+                            const { error } = await supabase
+                                .from('staff')
+                                .insert([member]);
+                            if (error) throw error;
+                        }
+                        successCount++;
+                    } catch (err) {
+                        console.error('Error importing staff member:', err);
+                        errorCount++;
+                    }
+                }
+
+                alert(`นำเข้าข้อมูลพนักงานเรียบร้อย! สำเร็จ ${successCount} คน${errorCount > 0 ? `, ผิดพลาด ${errorCount} คน` : ''}`);
                 fetchData();
             }
         } catch (error) {

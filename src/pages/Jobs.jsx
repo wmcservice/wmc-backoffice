@@ -354,18 +354,64 @@ export default function Jobs() {
                             updated_at: new Date().toISOString()
                         };
 
-                        const { data: inserted, error } = await supabase.from('jobs').insert([dbData]).select();
-                        if (error) throw error;
+                        let finalJobId = null;
 
-                        // Also add staff assignments (allocations) if provided
-                        if (job.assignedStaffIds.length > 0 && inserted?.[0]?.id) {
+                        // Check if job with this QT number already exists
+                        if (job.qtNumber && job.qtNumber.trim() !== '') {
+                            const { data: existing } = await supabase
+                                .from('jobs')
+                                .select('id')
+                                .eq('qt_number', job.qtNumber)
+                                .maybeSingle();
+
+                            if (existing) {
+                                // Update existing job
+                                const { error: updateError } = await supabase
+                                    .from('jobs')
+                                    .update(dbData)
+                                    .eq('id', existing.id);
+                                if (updateError) throw updateError;
+                                finalJobId = existing.id;
+                            } else {
+                                // Insert new job
+                                const { data: inserted, error: insertError } = await supabase
+                                    .from('jobs')
+                                    .insert([dbData])
+                                    .select();
+                                if (insertError) throw insertError;
+                                finalJobId = inserted[0].id;
+                            }
+                        } else {
+                            // No QT number, always insert as new
+                            const { data: inserted, error: insertError } = await supabase
+                                .from('jobs')
+                                .insert([dbData])
+                                .select();
+                            if (insertError) throw insertError;
+                            finalJobId = inserted[0].id;
+                        }
+
+                        // Also add staff assignments (allocations) if provided AND staff exists
+                        if (job.assignedStaffIds && job.assignedStaffIds.length > 0 && finalJobId) {
                             const allocs = job.assignedStaffIds.map(sid => ({
-                                job_id: inserted[0].id,
+                                job_id: finalJobId,
                                 staff_id: sid,
                                 date: job.startDate,
                                 status: 'ได้รับมอบหมาย'
                             }));
-                            await supabase.from('allocations').insert(allocs);
+                            
+                            try {
+                                // Clean up existing allocations for this job on this date before adding new ones
+                                await supabase.from('allocations')
+                                    .delete()
+                                    .eq('job_id', finalJobId)
+                                    .eq('date', job.startDate);
+                                    
+                                const { error: allocError } = await supabase.from('allocations').insert(allocs);
+                                if (allocError) console.warn('Could not link staff:', allocError);
+                            } catch (allocErr) {
+                                console.warn('Allocation error:', allocErr);
+                            }
                         }
                         
                         successCount++;
