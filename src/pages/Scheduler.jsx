@@ -122,16 +122,65 @@ export default function Scheduler() {
                 updated_at: new Date().toISOString()
             };
 
-            const { error } = await supabase.from('jobs').update(dbData).eq('id', job.id);
-            if (error) throw error;
+            let jobId = job.id;
+            if (editingJob && job.id) {
+                const { error } = await supabase.from('jobs').update(dbData).eq('id', job.id);
+                if (error) throw error;
+            } else {
+                const { data, error } = await supabase.from('jobs').insert([dbData]).select();
+                if (error) throw error;
+                jobId = data[0].id;
+            }
 
-            fetchData();
+            // Save Sub-tasks
+            await supabase.from('sub_tasks').delete().eq('job_id', jobId);
+            if (job.subTasks?.length > 0) {
+                const subTasksData = job.subTasks.map(st => ({
+                    job_id: jobId,
+                    title: st.title,
+                    is_completed: st.isCompleted
+                }));
+                await supabase.from('sub_tasks').insert(subTasksData);
+            }
+
+            // Save Attachments
+            await supabase.from('attachments').delete().eq('job_id', jobId);
+            if (job.attachments?.length > 0) {
+                const attachmentsData = job.attachments.map(a => ({
+                    job_id: jobId,
+                    name: a.name,
+                    url: a.url,
+                    type: a.type
+                }));
+                await supabase.from('attachments').insert(attachmentsData);
+            }
+
+            await fetchData();
             setShowEditJobModal(false);
-            setSelectedJob(null); 
+            setEditingJob(null);
+            // If we're editing the currently selected job, update its detail view too
+            if (selectedJob && selectedJob.id === jobId) {
+                // We need to find the fresh job data from the state after refresh
+                // But fetchData is async and updates state, so we might need a more direct way or useEffect
+            }
         } catch (error) {
             console.error('Error saving job:', error);
+            alert('ไม่สามารถบันทึกข้อมูลได้');
         }
     };
+
+    // Effect to keep selectedJob in sync with jobs array
+    useEffect(() => {
+        if (selectedJob) {
+            const updated = jobs.find(j => j.id === selectedJob.id);
+            if (updated) {
+                // Only update if something actually changed to avoid infinite loops
+                if (JSON.stringify(updated) !== JSON.stringify(selectedJob)) {
+                    setSelectedJob(updated);
+                }
+            }
+        }
+    }, [jobs, selectedJob]);
 
     const handleStatusChange = async (job, newStatus) => {
         let fixReason = job.fixReason;
@@ -437,9 +486,8 @@ export default function Scheduler() {
                     onDelete={() => handleDeleteJob(selectedJob.id)}
                     onStatusChange={handleStatusChange}
                     onUpdate={async () => {
-                        await refresh();
-                        // Find updated job from the local jobs array after refresh
-                        // Note: refresh is async, so we wait for it
+                        await fetchData();
+                        // fetchData updates 'jobs' state, and the useEffect will sync selectedJob
                     }}
                 />
             )}
