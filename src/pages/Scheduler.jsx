@@ -29,7 +29,6 @@ export default function Scheduler({ user }) {
         fetchData();
     }, []);
 
-    // Sync selectedJob when jobs array updates
     useEffect(() => {
         if (selectedJob) {
             const freshJob = jobs.find(j => j.id === selectedJob.id);
@@ -94,8 +93,13 @@ export default function Scheduler({ user }) {
             let jobId = job.id;
             if (job.id) await supabase.from('jobs').update(dbData).eq('id', job.id);
             else { const { data } = await supabase.from('jobs').insert([dbData]).select(); jobId = data[0].id; }
+            
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
             if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ job_id: jobId, title: st.title, is_completed: st.isCompleted })));
+            
+            await supabase.from('attachments').delete().eq('job_id', jobId);
+            if (job.attachments?.length > 0) await supabase.from('attachments').insert(job.attachments.map(a => ({ job_id: jobId, name: a.name, url: a.url, type: a.type })));
+
             if (job.assignedStaffIds?.length > 0) {
                 const { data: existing } = await supabase.from('allocations').select('staff_id').eq('job_id', jobId).eq('date', job.startDate);
                 const existingIds = (existing || []).map(e => e.staff_id);
@@ -173,11 +177,49 @@ export default function Scheduler({ user }) {
 
 function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }) {
     const [form, setForm] = useState(job ? { ...job, assignedStaffIds: job.assignedStaffIds || [] } : createJob());
-    const [selectionType, setSelectionType] = useState(['พี่ยุ้ย', 'แพร', 'ไอซ์'].includes(form.createdBy) ? form.createdBy : (form.createdBy ? 'อื่นๆ' : ''));
+    const initialSelectionType = ['พี่ยุ้ย', 'แพร', 'ไอซ์'].includes(form.createdBy) ? form.createdBy : (form.createdBy ? 'อื่นๆ' : '');
+    const [selectionType, setSelectionType] = useState(initialSelectionType);
+    const [linkInput, setLinkInput] = useState({ name: '', url: '' });
+    const [subTaskInput, setSubTaskInput] = useState('');
     const update = (f, v) => setForm(prev => ({ ...prev, [f]: v }));
+
+    const handleAddSubTask = () => {
+        if (!subTaskInput.trim()) return;
+        const newSubTask = { id: Date.now(), title: subTaskInput.trim(), isCompleted: false };
+        const updatedTasks = [...(form.subTasks || []), newSubTask];
+        update('subTasks', updatedTasks);
+        setSubTaskInput('');
+        const completed = updatedTasks.filter(t => t.isCompleted).length;
+        const progress = Math.round((completed / updatedTasks.length) * 100);
+        update('overallProgress', progress);
+        if (progress === 100) update('status', 'เสร็จสมบูรณ์');
+    };
+
+    const handleAddLink = () => {
+        if (!linkInput.name || !linkInput.url) return;
+        const newAttachment = { id: Date.now(), name: linkInput.name, url: linkInput.url, type: 'link' };
+        update('attachments', [...(form.attachments || []), newAttachment]);
+        setLinkInput({ name: '', url: '' });
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            let fileUrl = '';
+            if (file.type.startsWith('image/')) fileUrl = await compressImage(file);
+            else {
+                if (file.size > 1024 * 1024) { alert('ไฟล์ใหญ่เกินไป'); return; }
+                const reader = new FileReader();
+                fileUrl = await new Promise((res) => { reader.onload = (ev) => res(ev.target.result); reader.readAsDataURL(file); });
+            }
+            update('attachments', [...(form.attachments || []), { id: Date.now(), name: file.name, url: fileUrl, type: file.type.includes('pdf') ? 'pdf' : 'image' }]);
+        } catch (err) { console.error(err); }
+    };
+
     return (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-            <div className="modal" style={{ maxWidth: '700px' }}>
+            <div className="modal" style={{ maxWidth: '750px' }}>
                 <div className="modal-header"><h2>{job ? 'แก้ไขงาน' : 'เพิ่มงานใหม่'}</h2><button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button></div>
                 <div className="modal-body"><div className="form-grid">
                     <div className="input-group"><label>เลขที่ QT</label><input className="input" value={form.qtNumber} onChange={e => update('qtNumber', e.target.value)} /></div>
@@ -200,6 +242,39 @@ function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }) {
                         <div className="input-group"><label>วันที่เริ่ม</label><input className="input" type="date" value={form.startDate} onChange={e => update('startDate', e.target.value)} /></div>
                         <div className="input-group"><label>วันที่สิ้นสุด</label><input className="input" type="date" value={form.endDate} onChange={e => update('endDate', e.target.value)} /></div>
                     </div>
+
+                    <div className="input-group full-width" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '16px' }}>
+                        <label>รายการงานย่อย</label>
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                            <input className="input" placeholder="เพิ่มงานย่อย..." value={subTaskInput} onChange={e => setSubTaskInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddSubTask())} />
+                            <button className="btn btn-secondary" onClick={handleAddSubTask}>+ เพิ่ม</button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {(form.subTasks || []).map(t => (
+                                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px', background: 'var(--bg-tertiary)', borderRadius: '4px' }}>
+                                    <input type="checkbox" checked={t.isCompleted} onChange={(e) => { const ut = form.subTasks.map(st => st.id === t.id ? {...st, isCompleted: e.target.checked} : st); update('subTasks', ut); }} />
+                                    <span style={{ flex: 1, fontSize: '13px' }}>{t.title}</span>
+                                    <button onClick={() => update('subTasks', form.subTasks.filter(st => st.id !== t.id))} style={{ border: 'none', background: 'transparent', color: '#ef4444' }}>×</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="input-group full-width" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '16px' }}>
+                        <label>ไฟล์แนบ / ลิ้งค์</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', marginBottom: '8px' }}>
+                            <input className="input" placeholder="ชื่อ" value={linkInput.name} onChange={e => setLinkInput({...linkInput, name: e.target.value})} />
+                            <input className="input" placeholder="URL" value={linkInput.url} onChange={e => setLinkInput({...linkInput, url: e.target.value})} />
+                            <button className="btn btn-secondary" onClick={handleAddLink}>เพิ่มลิ้งค์</button>
+                        </div>
+                        <label className="btn btn-outline btn-sm" style={{ cursor: 'pointer' }}>แนบรูป/PDF<input type="file" accept="image/*, .pdf" style={{ display: 'none' }} onChange={handleFileUpload} /></label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
+                            {(form.attachments || []).map(a => (
+                                <span key={a.id} className="staff-chip" style={{ fontSize: '11px' }}>{a.name} <button onClick={() => update('attachments', form.attachments.filter(at => at.id !== a.id))} style={{ border: 'none', background: 'transparent', color: '#ef4444' }}>×</button></span>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="input-group full-width" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '16px' }}>
                         <label>ทีมงานประจำโปรเจกต์</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
@@ -244,7 +319,12 @@ function JobDetailModal({ job, staff, user, onClose, onEdit, onDelete, onUpdate,
                     </div>
                     <div className="detail-section">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}><h4>ทีมงาน ({(job.assignedStaffIds || []).length})</h4><button className="btn btn-sm btn-outline" onClick={() => setIsAdding(!isAdding)}>{isAdding ? 'ยกเลิก' : '+ เพิ่ม'}</button></div>
-                        {isAdding && (<select className="select" onChange={async e => { await supabase.from('allocations').insert([{ job_id: job.id, staff_id: e.target.value, date: new Date().toISOString().split('T')[0], status: 'ได้รับมอบหมาย' }]); onUpdate(); setIsAdding(false); }} defaultValue="" style={{ marginBottom: '8px' }}><option value="" disabled>เลือกพนักงาน</option>{staff.filter(s => !(job.assignedStaffIds || []).includes(s.id)).map(s => <option key={s.id} value={s.id}>{s.nickname}</option>)}</select>)}
+                        {isAdding && (
+                            <select className="select" onChange={async e => { await supabase.from('allocations').insert([{ job_id: job.id, staff_id: e.target.value, date: new Date().toISOString().split('T')[0], status: 'ได้รับมอบหมาย' }]); onUpdate(); setIsAdding(false); }} defaultValue="" style={{ marginBottom: '8px' }}>
+                                <option value="" disabled>เลือกพนักงาน</option>
+                                {staff.filter(s => !(job.assignedStaffIds || []).includes(s.id)).map(s => <option key={s.id} value={s.id}>{s.nickname}</option>)}
+                            </select>
+                        )}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>{(job.assignedStaffIds || []).map(id => { const s = staff.find(st => st.id === id); if (!s) return null; return (<span key={s.id} className="staff-chip">{s.nickname} <button onClick={async () => { if (confirm('Remove?')) { await supabase.from('allocations').delete().eq('job_id', job.id).eq('staff_id', s.id).eq('date', new Date().toISOString().split('T')[0]); onUpdate(); } }} style={{ border: 'none', background: 'transparent', color: '#ef4444', marginLeft: '4px' }}>✕</button></span>); })}</div>
                     </div>
                     <div className="detail-section">

@@ -142,43 +142,6 @@ export default function Jobs({ user }) {
         return [...new Set(clients)].sort((a, b) => a.localeCompare(b, 'th'));
     }, [jobs]);
 
-    // Multi-select handlers
-    const toggleSelectAll = () => {
-        if (selectedIds.length === filtered.length && filtered.length > 0) {
-            setSelectedIds([]);
-        } else {
-            setSelectedIds(filtered.map(j => j.id));
-        }
-    };
-
-    const toggleSelect = (id) => {
-        setSelectedIds(prev => 
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-        );
-    };
-
-    const handleBulkDelete = async () => {
-        if (!selectedIds.length) return;
-        if (confirm(`คุณต้องการลบงานที่เลือกทั้ง ${selectedIds.length} รายการใช่หรือไม่?`)) {
-            try {
-                setLoading(true);
-                const { error } = await supabase
-                    .from('jobs')
-                    .delete()
-                    .in('id', selectedIds);
-                
-                if (error) throw error;
-                alert('ลบข้อมูลเรียบร้อยแล้ว');
-                fetchData();
-            } catch (error) {
-                console.error('Bulk delete error:', error);
-                alert('เกิดข้อผิดพลาดในการลบข้อมูล');
-            } finally {
-                setLoading(false);
-            }
-        }
-    };
-
     const handleSave = async (job) => {
         try {
             const dbData = {
@@ -234,6 +197,17 @@ export default function Jobs({ user }) {
                     is_completed: st.isCompleted
                 }));
                 await supabase.from('sub_tasks').insert(subTasksData);
+            }
+
+            await supabase.from('attachments').delete().eq('job_id', jobId);
+            if (job.attachments?.length > 0) {
+                const attachmentsData = job.attachments.map(a => ({
+                    job_id: jobId,
+                    name: a.name,
+                    url: a.url,
+                    type: a.type
+                }));
+                await supabase.from('attachments').insert(attachmentsData);
             }
 
             refresh();
@@ -298,17 +272,10 @@ export default function Jobs({ user }) {
                 </button>
             </div>
 
-            {/* Filters */}
             <div className="filters-bar">
                 <div className="search-input">
                     <Search size={16} />
-                    <input
-                        type="text"
-                        placeholder="ค้นหา..."
-                        className="input"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                    />
+                    <input type="text" placeholder="ค้นหา..." className="input" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
                 <select className="select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                     <option value="ทุกสถานะ">ทุกสถานะ</option>
@@ -316,7 +283,6 @@ export default function Jobs({ user }) {
                 </select>
             </div>
 
-            {/* Job Data Table */}
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                 <div className="table-wrapper">
                     <table className="jobs-table">
@@ -351,7 +317,6 @@ export default function Jobs({ user }) {
                 </div>
             </div>
 
-            {/* Job Modal */}
             {showModal && (
                 <JobModal
                     job={editingJob}
@@ -362,7 +327,6 @@ export default function Jobs({ user }) {
                 />
             )}
 
-            {/* Detail Modal */}
             {showDetailModal && detailJob && (
                 <JobDetailModal
                     job={detailJob}
@@ -385,6 +349,7 @@ function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }) {
     const [form, setForm] = useState(job || createJob());
     const initialSelectionType = ['พี่ยุ้ย', 'แพร', 'ไอซ์'].includes(form.createdBy) ? form.createdBy : (form.createdBy ? 'อื่นๆ' : '');
     const [selectionType, setSelectionType] = useState(initialSelectionType);
+    const [linkInput, setLinkInput] = useState({ name: '', url: '' });
     const [subTaskInput, setSubTaskInput] = useState('');
     
     const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -392,105 +357,138 @@ function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }) {
     const handleAddSubTask = () => {
         if (!subTaskInput.trim()) return;
         const newSubTask = { id: Date.now(), title: subTaskInput.trim(), isCompleted: false };
-        update('subTasks', [...(form.subTasks || []), newSubTask]);
+        const updatedTasks = [...(form.subTasks || []), newSubTask];
+        update('subTasks', updatedTasks);
         setSubTaskInput('');
+        calculateAndSetProgress(updatedTasks);
+    };
+
+    const removeSubTask = (id) => {
+        const updatedTasks = (form.subTasks || []).filter(t => t.id !== id);
+        update('subTasks', updatedTasks);
+        calculateAndSetProgress(updatedTasks);
+    };
+
+    const calculateAndSetProgress = (tasks) => {
+        if (!tasks || tasks.length === 0) {
+            update('overallProgress', 0);
+            return;
+        }
+        const completed = tasks.filter(t => t.isCompleted).length;
+        const progress = Math.round((completed / tasks.length) * 100);
+        update('overallProgress', progress);
+        if (progress === 100) update('status', 'เสร็จสมบูรณ์');
+    };
+
+    const handleAddLink = () => {
+        if (!linkInput.name || !linkInput.url) return;
+        const newAttachment = { id: Date.now(), name: linkInput.name, url: linkInput.url, type: 'link' };
+        update('attachments', [...(form.attachments || []), newAttachment]);
+        setLinkInput({ name: '', url: '' });
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            let fileUrl = '';
+            const isImage = file.type.startsWith('image/');
+            const isPdf = file.type.includes('pdf');
+            if (isImage) {
+                fileUrl = await compressImage(file);
+            } else {
+                if (file.size > 1024 * 1024) { alert('ไฟล์มีขนาดใหญ่เกินไป (จำกัด 1MB)'); return; }
+                const reader = new FileReader();
+                fileUrl = await new Promise((res) => { reader.onload = (ev) => res(ev.target.result); reader.readAsDataURL(file); });
+            }
+            const newAttachment = { id: Date.now(), name: file.name, url: fileUrl, type: isPdf ? 'pdf' : 'image' };
+            update('attachments', [...(form.attachments || []), newAttachment]);
+        } catch (error) { console.error("Upload error:", error); }
     };
 
     return (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-            <div className="modal" style={{ maxWidth: '700px' }}>
+            <div className="modal" style={{ maxWidth: '750px' }}>
                 <div className="modal-header">
                     <h2>{job ? 'แก้ไขงาน' : 'เพิ่มงานใหม่'}</h2>
                     <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
                 </div>
                 <div className="modal-body">
                     <div className="form-grid">
-                        <div className="input-group">
-                            <label>เลขที่ QT</label>
-                            <input className="input" value={form.qtNumber} onChange={e => update('qtNumber', e.target.value)} placeholder="QT-2625-XXX" />
-                        </div>
-                        <div className="input-group">
-                            <label>ชื่อโปรเจกต์</label>
-                            <input className="input" value={form.projectName} onChange={e => update('projectName', e.target.value)} placeholder="เช่น Okamura-DTGO" />
-                        </div>
+                        <div className="input-group"><label>เลขที่ QT</label><input className="input" value={form.qtNumber} onChange={e => update('qtNumber', e.target.value)} /></div>
+                        <div className="input-group"><label>ชื่อโปรเจกต์</label><input className="input" value={form.projectName} onChange={e => update('projectName', e.target.value)} /></div>
                         <div className="input-group">
                             <label>ชื่อลูกค้า</label>
-                            <input 
-                                className="input" 
-                                value={form.clientName} 
-                                onChange={e => update('clientName', e.target.value)} 
-                                placeholder="เช่น Okamura" 
-                                list="client-suggestions"
-                            />
-                            <datalist id="client-suggestions">
-                                {clientSuggestions.map(client => (
-                                    <option key={client} value={client} />
-                                ))}
-                            </datalist>
+                            <input className="input" value={form.clientName} onChange={e => update('clientName', e.target.value)} list="client-suggestions" />
+                            <datalist id="client-suggestions">{clientSuggestions.map(c => <option key={c} value={c} />)}</datalist>
                         </div>
                         <div className="input-group">
                             <label>เซลล์ที่รับผิดชอบ</label>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <select 
-                                    className="select" 
-                                    value={selectionType} 
-                                    onChange={e => {
-                                        const val = e.target.value;
-                                        setSelectionType(val);
-                                        if (val !== 'อื่นๆ') update('createdBy', val);
-                                    }}
-                                >
-                                    <option value="">-- เลือกผู้ลงชื่อ --</option>
-                                    <option value="พี่ยุ้ย">พี่ยุ้ย</option>
-                                    <option value="แพร">แพร</option>
-                                    <option value="ไอซ์">ไอซ์</option>
-                                    <option value="อื่นๆ">อื่นๆ (โปรดระบุ)</option>
+                                <select className="select" value={selectionType} onChange={e => { setSelectionType(e.target.value); if (e.target.value !== 'อื่นๆ') update('createdBy', e.target.value); }}>
+                                    <option value="">-- เลือกผู้ลงชื่อ --</option><option value="พี่ยุ้ย">พี่ยุ้ย</option><option value="แพร">แพร</option><option value="ไอซ์">ไอซ์</option><option value="อื่นๆ">อื่นๆ</option>
                                 </select>
-                                {selectionType === 'อื่นๆ' && (
-                                    <input 
-                                        className="input" 
-                                        placeholder="ระบุชื่อผู้รับผิดชอบ..." 
-                                        value={form.createdBy} 
-                                        onChange={e => update('createdBy', e.target.value)}
-                                    />
-                                )}
+                                {selectionType === 'อื่นๆ' && <input className="input" value={form.createdBy} onChange={e => update('createdBy', e.target.value)} />}
                             </div>
                         </div>
-                        <div className="input-group">
-                            <label>ประเภทงาน</label>
-                            <select className="select" value={form.jobType} onChange={e => update('jobType', e.target.value)}>
-                                {JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                        </div>
-                        <div className="input-group">
-                            <label>สถานะ</label>
-                            <select className="select" value={form.status} onChange={e => update('status', e.target.value)}>
-                                {JOB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </div>
+                        <div className="input-group"><label>ประเภทงาน</label><select className="select" value={form.jobType} onChange={e => update('jobType', e.target.value)}>{JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div className="input-group"><label>สถานะ</label><select className="select" value={form.status} onChange={e => update('status', e.target.value)}>{JOB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                         <div className="form-row">
                             <div className="input-group"><label>วันที่เริ่ม</label><input className="input" type="date" value={form.startDate} onChange={e => update('startDate', e.target.value)} /></div>
                             <div className="input-group"><label>วันที่สิ้นสุด</label><input className="input" type="date" value={form.endDate} onChange={e => update('endDate', e.target.value)} /></div>
                         </div>
+
+                        {/* Sub-tasks Section */}
+                        <div className="input-group full-width" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '16px' }}>
+                            <label>รายการงานย่อย (เพื่อคำนวณ % ความสำเร็จ)</label>
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                                <input className="input" placeholder="เพิ่มงานย่อย..." value={subTaskInput} onChange={e => setSubTaskInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddSubTask())} />
+                                <button className="btn btn-secondary" onClick={handleAddSubTask}>+ เพิ่ม</button>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                {(form.subTasks || []).map(t => (
+                                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
+                                        <input type="checkbox" checked={t.isCompleted} onChange={(e) => { const ut = form.subTasks.map(st => st.id === t.id ? {...st, isCompleted: e.target.checked} : st); calculateAndSetProgress(ut); }} />
+                                        <span style={{ flex: 1, fontSize: '13px', textDecoration: t.isCompleted ? 'line-through' : 'none' }}>{t.title}</span>
+                                        <button onClick={() => removeSubTask(t.id)} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>×</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Attachments Section */}
+                        <div className="input-group full-width" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '16px' }}>
+                            <label>แนบไฟล์ประกอบ / ลิ้งค์งาน</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', marginBottom: '12px' }}>
+                                <input className="input" placeholder="ชื่อลิ้งค์" value={linkInput.name} onChange={e => setLinkInput({...linkInput, name: e.target.value})} />
+                                <input className="input" placeholder="URL" value={linkInput.url} onChange={e => setLinkInput({...linkInput, url: e.target.value})} />
+                                <button className="btn btn-secondary" onClick={handleAddLink}>+ เพิ่มลิ้งค์</button>
+                            </div>
+                            <div style={{ marginBottom: '12px' }}>
+                                <label className="btn btn-outline btn-sm" style={{ cursor: 'pointer' }}>
+                                    <Upload size={14} /> แนบรูป/PDF
+                                    <input type="file" accept="image/*, .pdf" style={{ display: 'none' }} onChange={handleFileUpload} />
+                                </label>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                {(form.attachments || []).map(a => (
+                                    <div key={a.id} className="staff-chip" style={{ background: 'var(--bg-tertiary)', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '12px' }}>{a.type === 'link' ? '🔗' : '📄'} {a.name}</span>
+                                        <button onClick={() => update('attachments', form.attachments.filter(at => at.id !== a.id))} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>×</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Team Selection */}
                         <div className="input-group full-width" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '16px' }}>
                             <label>ทีมงานประจำโปรเจกต์</label>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                                 {staff.map(s => {
-                                    const isSelected = (form.assignedStaffIds || []).includes(s.id);
+                                    const isSel = (form.assignedStaffIds || []).includes(s.id);
                                     return (
-                                        <button
-                                            key={s.id}
-                                            type="button"
-                                            onClick={() => update('assignedStaffIds', isSelected ? form.assignedStaffIds.filter(id => id !== s.id) : [...(form.assignedStaffIds || []), s.id])}
-                                            style={{
-                                                padding: '4px 12px', borderRadius: '20px', border: '1px solid',
-                                                borderColor: isSelected ? 'var(--brand-primary)' : 'var(--border-primary)',
-                                                background: isSelected ? 'var(--brand-primary)' : 'transparent',
-                                                color: isSelected ? '#fff' : 'var(--text-primary)', fontSize: '12px'
-                                            }}
-                                        >
-                                            {s.nickname}
-                                        </button>
+                                        <button key={s.id} type="button" onClick={() => update('assignedStaffIds', isSel ? form.assignedStaffIds.filter(id => id !== s.id) : [...(form.assignedStaffIds || []), s.id])}
+                                            style={{ padding: '4px 12px', borderRadius: '20px', border: '1px solid', borderColor: isSel ? 'var(--brand-primary)' : 'var(--border-primary)', background: isSel ? 'var(--brand-primary)' : 'transparent', color: isSel ? '#fff' : 'var(--text-primary)', fontSize: '12px' }}>{s.nickname}</button>
                                     );
                                 })}
                             </div>
@@ -498,10 +496,7 @@ function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }) {
                         <div className="input-group full-width"><label>หมายเหตุ</label><textarea className="textarea" value={form.notes} onChange={e => update('notes', e.target.value)} /></div>
                     </div>
                 </div>
-                <div className="modal-footer">
-                    <button className="btn btn-secondary" onClick={onClose}>ยกเลิก</button>
-                    <button className="btn btn-primary" onClick={() => onSave(form)}>บันทึก</button>
-                </div>
+                <div className="modal-footer"><button className="btn btn-secondary" onClick={onClose}>ยกเลิก</button><button className="btn btn-primary" onClick={() => onSave(form)}>บันทึก</button></div>
             </div>
         </div>
     );
@@ -514,21 +509,15 @@ function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusChange })
     const [logStaffIds, setLogStaffIds] = useState([]);
     const [localIssues, setLocalIssues] = useState(job.currentIssues || '');
 
-    useEffect(() => {
-        setLocalIssues(job.currentIssues || '');
-    }, [job.id, job.currentIssues]); 
+    useEffect(() => { setLocalIssues(job.currentIssues || ''); }, [job.id, job.currentIssues]);
 
     const handleAddLog = async () => {
         if (!newLog.trim()) return;
-        const authorName = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'Admin';
+        const author = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'Admin';
         try {
-            const { data, error } = await supabase.from('progress_logs').insert([{
-                job_id: job.id, log_date: new Date().toISOString().split('T')[0], text: newLog, author: authorName
-            }]).select();
+            const { data, error } = await supabase.from('progress_logs').insert([{ job_id: job.id, log_date: new Date().toISOString().split('T')[0], text: newLog, author }]).select();
             if (error) throw error;
-            if (logStaffIds.length > 0) {
-                await supabase.from('log_staff_assignments').insert(logStaffIds.map(sid => ({ log_id: data[0].id, staff_id: sid })));
-            }
+            if (logStaffIds.length > 0) await supabase.from('log_staff_assignments').insert(logStaffIds.map(sid => ({ log_id: data[0].id, staff_id: sid })));
             setNewLog(''); setLogStaffIds([]); onUpdate();
         } catch (error) { console.error(error); }
     };
