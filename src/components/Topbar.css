@@ -138,6 +138,128 @@
     border: 2px solid var(--bg-secondary);
 }
 
+.notifications-container {
+    position: relative;
+}
+
+.notifications-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 320px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    overflow: hidden;
+    animation: slideInDown 0.2s ease-out;
+}
+
+.notifications-header {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-tertiary);
+}
+
+.notifications-header h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.notifications-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    gap: var(--space-3);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.notification-item:hover {
+    background: var(--bg-hover);
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-icon.warning {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.notification-icon.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    display: block;
+}
+
+.notification-desc {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    display: block;
+    line-height: 1.4;
+}
+
+.notification-time {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+    display: block;
+}
+
+.notifications-empty {
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+    color: var(--text-tertiary);
+}
+
+.notifications-empty p {
+    font-size: 13px;
+    margin-top: var(--space-2);
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .user-avatar {
     width: 34px;
     height: 34px;
