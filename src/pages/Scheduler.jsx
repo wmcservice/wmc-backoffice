@@ -447,6 +447,7 @@ export default function Scheduler() {
             {showEditJobModal && selectedJob && (
                 <JobModal
                     job={selectedJob}
+                    staff={staff}
                     onSave={handleSaveJob}
                     onClose={() => setShowEditJobModal(false)}
                 />
@@ -455,7 +456,7 @@ export default function Scheduler() {
     );
 }
 
-function JobModal({ job, onSave, onClose }) {
+function JobModal({ job, staff, onSave, onClose }) {
     const [form, setForm] = useState(job || createJob());
     const initialSelectionType = ['พี่ยุ้ย', 'แพร', 'ไอซ์'].includes(form.createdBy) ? form.createdBy : (form.createdBy ? 'อื่นๆ' : '');
     const [selectionType, setSelectionType] = useState(initialSelectionType);
