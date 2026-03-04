@@ -14,6 +14,7 @@ export function formatDay(dateStr) {
     if (!dateStr) return '';
     return format(parseISO(dateStr), 'EEE');
 }
+
 export function getWeekDates(referenceDate = new Date()) {
     const start = startOfWeek(referenceDate, { weekStartsOn: 1 }); // Monday
     return Array.from({ length: 7 }, (_, i) => {
@@ -32,11 +33,10 @@ export function getMonthDates(referenceDate = new Date()) {
     });
 }
 
-export function getTodayStr() {
-    return format(new Date(), 'yyyy-MM-dd');
-}
-
-    return format(parseISO(dateStr), 'MMMM yyyy');
+export function formatMonthYear(dateStr) {
+    if (!dateStr) return '';
+    const date = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
+    return format(date, 'MMMM yyyy');
 }
 
 export function getTodayStr() {
