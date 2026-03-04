@@ -430,7 +430,7 @@ button {
   padding-right: 36px;
 }
 
-/* ── Modal ── */
+/* ── Modal & Form ── */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -467,6 +467,12 @@ button {
   font-weight: 700;
 }
 
+.modal-header .subtitle {
+  font-size: var(--font-xs);
+  color: var(--text-tertiary);
+  display: block;
+}
+
 .modal-body {
   padding: var(--space-6);
 }
@@ -477,6 +483,91 @@ button {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.form-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.input-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-section {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-primary);
+}
+
+.detail-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.detail-section h4 {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.staff-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border-primary);
+}
+
+.job-type-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  background: var(--status-in-progress-bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.staff-toggle-btn {
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.staff-toggle-btn.active {
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.log-list {
+  scrollbar-width: thin;
+}
+
+.log-list::-webkit-scrollbar {
+  width: 4px;
 }
 
 @keyframes fadeIn {
