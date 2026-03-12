@@ -11,6 +11,7 @@ export default function Topbar({ onMenuToggle, user }) {
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = useRef(null);
     const nickname = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'User';
+    const isOffline = localStorage.getItem('wmc_use_offline') === 'true';
 
     useEffect(() => {
         fetchNotifications();
@@ -98,6 +99,23 @@ export default function Topbar({ onMenuToggle, user }) {
                         className="input"
                     />
                 </div>
+                {isOffline && (
+                    <div className="offline-badge" style={{ 
+                        marginLeft: '12px', 
+                        padding: '4px 10px', 
+                        background: '#fff7ed', 
+                        border: '1px solid #ffedd5', 
+                        borderRadius: '6px', 
+                        fontSize: '11px', 
+                        fontWeight: 600, 
+                        color: '#c2410c',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                    }}>
+                        <AlertTriangle size={14} /> โหมดออฟไลน์
+                    </div>
+                )}
             </div>
 
             <div className="topbar-right">

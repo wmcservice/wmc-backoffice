@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { offlineSupabase } from '../data/offline-store';
 
-const isOffline = false; // Use real Supabase with credentials from .env
+// Get offline status from localStorage, default to false (online)
+const isOffline = localStorage.getItem('wmc_use_offline') === 'true';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY

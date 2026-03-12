@@ -13,6 +13,7 @@ export default function Settings() {
     const [holidays, setHolidays] = useState(getHolidays());
     const [saved, setSaved] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [isOffline, setIsOffline] = useState(localStorage.getItem('wmc_use_offline') === 'true');
     const [newHoliday, setNewHoliday] = useState({ date: '', name: '', type: 'Public' });
 
     const updateParam = (field, value) => {
@@ -82,6 +83,16 @@ export default function Settings() {
             alert('เกิดข้อผิดพลาด: ' + err.message);
         } finally {
             setSyncing(false);
+        }
+    };
+
+    const toggleOfflineMode = () => {
+        const newValue = !isOffline;
+        setIsOffline(newValue);
+        localStorage.setItem('wmc_use_offline', newValue.toString());
+        // Reload to apply change to supabase client
+        if (confirm(newValue ? 'เปลี่ยนเป็นโหมดออฟไลน์ (ใช้ข้อมูลในเครื่อง)? ระบบจะรีโหลดหน้าเว็บ' : 'เปลี่ยนเป็นโหมดออนไลน์ (ใช้ข้อมูล Supabase)? ระบบจะรีโหลดหน้าเว็บ')) {
+            window.location.reload();
         }
     };
 
@@ -214,6 +225,18 @@ export default function Settings() {
             <div className="card" style={{ marginTop: 'var(--space-5)' }}>
                 <div className="card-header">
                     <h3>Data Management & Online Sync</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: isOffline ? '#f59e0b' : '#3ecf8e' }}>
+                            {isOffline ? 'OFFLINE MODE (Local Data)' : 'ONLINE MODE (Supabase)'}
+                        </span>
+                        <button 
+                            className={`btn btn-sm ${isOffline ? 'btn-warning' : 'btn-outline'}`} 
+                            onClick={toggleOfflineMode}
+                            style={{ padding: '4px 12px', borderRadius: '20px' }}
+                        >
+                            {isOffline ? 'Switch to Online' : 'Switch to Offline'}
+                        </button>
+                    </div>
                 </div>
                 <div className="card-body">
                     <div className="data-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
