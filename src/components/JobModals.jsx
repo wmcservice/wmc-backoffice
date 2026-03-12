@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, X, Link, FileText, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
-import { JOB_STATUSES, JOB_TYPES, PRIORITIES, createJob } from '../data/models';
+import { createJob, JOB_STATUSES, JOB_TYPES, PRIORITIES } from '../data/models';
 import { formatDate, getStatusColor, getPriorityColor, statusToKey, jobTypeToKey } from '../utils/helpers';
+import TimeInput24 from './TimeInput24';
+import DateInputDMY from './DateInputDMY';
 
 export function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }) {
     const [form, setForm] = useState(job ? { ...job, assignedStaffIds: job.assignedStaffIds || [] } : createJob());
@@ -80,21 +82,21 @@ export function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }
                         <div className="form-row">
                             <div className="input-group">
                                 <label>วันที่เริ่ม</label>
-                                <input className="input" type="date" value={form.startDate} onChange={e => update('startDate', e.target.value)} />
+                                <DateInputDMY value={form.startDate} onChange={e => update('startDate', e.target.value)} />
                             </div>
                             <div className="input-group">
                                 <label>วันที่สิ้นสุด</label>
-                                <input className="input" type="date" value={form.endDate} onChange={e => update('endDate', e.target.value)} />
+                                <DateInputDMY value={form.endDate} onChange={e => update('endDate', e.target.value)} />
                             </div>
                         </div>
                         <div className="form-row">
                             <div className="input-group">
                                 <label>เวลาเข้างาน</label>
-                                <input className="input" type="time" value={form.defaultCheckIn} onChange={e => update('defaultCheckIn', e.target.value)} />
+                                <TimeInput24 value={form.defaultCheckIn} onChange={e => update('defaultCheckIn', e.target.value)} />
                             </div>
                             <div className="input-group">
                                 <label>เวลาเลิกงาน</label>
-                                <input className="input" type="time" value={form.defaultCheckOut} onChange={e => update('defaultCheckOut', e.target.value)} />
+                                <TimeInput24 value={form.defaultCheckOut} onChange={e => update('defaultCheckOut', e.target.value)} />
                             </div>
                         </div>
                         <div className="input-group full-width" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '16px' }}>
@@ -166,6 +168,7 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
     const [newLog, setNewLog] = useState('');
     const [logStaffIds, setLogStaffIds] = useState(job.assignedStaffIds || []);
     const [localIssues, setLocalIssues] = useState(job.currentIssues || '');
+    const [issueSuccess, setIssueSuccess] = useState(false);
 
     useEffect(() => {
         setLocalIssues(job.currentIssues || '');
@@ -174,9 +177,30 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
 
     const handleUpdateIssues = async () => {
         try {
-            await supabase.from('jobs').update({ current_issues: localIssues }).eq('id', job.id);
+            const isClearing = !localIssues.trim();
+            const reporterName = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'Admin';
+            const updatePayload = isClearing
+                ? { current_issues: '', current_issues_date: null, current_issues_by: null }
+                : { current_issues: localIssues.trim(), current_issues_date: new Date().toISOString(), current_issues_by: reporterName };
+            await supabase.from('jobs').update(updatePayload).eq('id', job.id);
             onUpdate();
-        } catch (error) { console.error(error); }
+            setIssueSuccess(true);
+            setTimeout(() => setIssueSuccess(false), 3000);
+        } catch (error) {
+            console.error('Error updating issues:', error);
+            alert('เกิดข้อผิดพลาด กรุณาลองอีกครั้ง');
+        }
+    };
+
+    const handleDeleteIssues = async () => {
+        if (!confirm('ต้องการลบปัญหานี้หรือไม่?')) return;
+        try {
+            await supabase.from('jobs').update({ current_issues: '', current_issues_date: null }).eq('id', job.id);
+            setLocalIssues('');
+            onUpdate();
+        } catch (error) {
+            console.error('Error deleting issues:', error);
+        }
     };
 
     const handleAddLog = async () => {
@@ -215,7 +239,8 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
     const handleRemoveMember = async (staffId) => {
         if (!confirm('ต้องการลบทีมงาน?')) return;
         try {
-            await supabase.from('allocations').delete().eq('job_id', job.id).eq('staff_id', staffId).eq('date', new Date().toISOString().split('T')[0]);
+            // Delete ALL allocations for this staff on this job (not just today's)
+            await supabase.from('allocations').delete().eq('job_id', job.id).eq('staff_id', staffId);
             onUpdate();
         } catch (error) { console.error(error); }
     };
@@ -287,10 +312,31 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
                                 ))}
                             </div>
                         )}
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <input className="input" placeholder="ระบุปัญหาที่พบ (ถ้ามี)..." value={localIssues} onChange={e => setLocalIssues(e.target.value)} style={{ flex: 1 }} />
+                        {job.currentIssues && (
+                            <div style={{ padding: '10px 14px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', marginBottom: '10px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                <AlertCircle size={16} style={{ color: '#d97706', flexShrink: 0, marginTop: '2px' }} />
+                                <div style={{ fontSize: '13px', color: '#92400e', lineHeight: '1.5', flex: 1 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                                        <strong>ปัญหาปัจจุบัน:</strong>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            {job.currentIssuesDate && <span style={{ fontSize: '11px', color: '#b45309' }}>{job.currentIssuesBy && <strong>{job.currentIssuesBy}</strong>}{job.currentIssuesBy && ' • '}อัปเดตเมื่อ: {new Date(job.currentIssuesDate).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
+                                            <button onClick={() => { setLocalIssues(job.currentIssues); document.getElementById('issue-input')?.focus(); }} style={{ border: 'none', background: 'transparent', color: '#b45309', cursor: 'pointer', padding: '2px', display: 'flex' }} title="แก้ไข"><Edit3 size={13} /></button>
+                                            <button onClick={handleDeleteIssues} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'flex' }} title="ลบ"><Trash2 size={13} /></button>
+                                        </div>
+                                    </div>
+                                    {job.currentIssues}
+                                </div>
+                            </div>
+                        )}
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <input id="issue-input" className="input" placeholder="ระบุปัญหาที่พบ (ถ้ามี)..." value={localIssues} onChange={e => setLocalIssues(e.target.value)} style={{ flex: 1 }} />
                             <button className="btn btn-secondary btn-sm" onClick={handleUpdateIssues}>อัปเดตปัญหา</button>
                         </div>
+                        {issueSuccess && (
+                            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '12px', fontWeight: 600 }}>
+                                <CheckCircle2 size={14} /> อัปเดตปัญหาสำเร็จ!
+                            </div>
+                        )}
                     </div>
 
                     {job.status === 'ต้องแก้ไข' && (
@@ -306,6 +352,21 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
                         <h4>หมายเหตุ</h4>
                         <div style={{ padding: '12px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-primary)', fontSize: '13px', minHeight: '40px', whiteSpace: 'pre-wrap' }}>
                             {job.notes || <em style={{ color: 'var(--text-tertiary)' }}>ไม่มีหมายเหตุ</em>}
+                        </div>
+                    </div>
+
+                    <div className="detail-section">
+                        <h4>ทีมงานและภารกิจประจำวัน</h4>
+                        <div className="log-list" style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {job.dailyTasks && job.dailyTasks.length > 0 ? job.dailyTasks.map((dt, idx) => (
+                                <div key={idx} style={{ padding: '10px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-primary)', fontSize: '13px' }}>
+                                    <div style={{ fontWeight: 600, marginBottom: '4px', color: 'var(--brand-primary)' }}>📅 {formatDate(dt.date)}</div>
+                                    <div style={{ marginBottom: '4px' }}><strong>ภารกิจ:</strong> {dt.task || <em style={{ color: 'var(--text-tertiary)' }}>ไม่ระบุภารกิจ</em>}</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                        <strong>ทีม:</strong> {dt.staffNames.length > 0 ? dt.staffNames.join(', ') : 'ยังไม่ระบุ'}
+                                    </div>
+                                </div>
+                            )) : <small style={{ color: 'var(--text-tertiary)' }}>ยังไม่มีการมอบหมายงานรายวัน</small>}
                         </div>
                     </div>
 

@@ -1,13 +1,18 @@
 import { useState } from 'react';
-import { Save, RotateCcw, Download, Upload, Plus, Trash2, Calendar } from 'lucide-react';
+import { Save, RotateCcw, Download, Upload, Plus, Trash2, Calendar, CloudUpload, Loader2 } from 'lucide-react';
 import { getParameters, saveParameters, getHolidays, saveHoliday, deleteHoliday, exportAllData, importAllData, resetAllData } from '../data/store';
 import { createHoliday } from '../data/models';
+import { formatDate } from '../utils/helpers';
+import { syncToSupabase } from '../data/supabaseSync';
+import TimeInput24 from '../components/TimeInput24';
+import DateInputDMY from '../components/DateInputDMY';
 import './Settings.css';
 
 export default function Settings() {
     const [params, setParams] = useState(getParameters());
     const [holidays, setHolidays] = useState(getHolidays());
     const [saved, setSaved] = useState(false);
+    const [syncing, setSyncing] = useState(false);
     const [newHoliday, setNewHoliday] = useState({ date: '', name: '', type: 'Public' });
 
     const updateParam = (field, value) => {
@@ -62,6 +67,24 @@ export default function Settings() {
         reader.readAsText(file);
     };
 
+    const handleSync = async () => {
+        if (!confirm('ต้องการอัพโหลดข้อมูลจากเครื่องนี้ขึ้น Supabase ใช่หรือไม่? (ข้อมูลเดิมใน Supabase จะถูกเขียนทับหาก ID ตรงกัน)')) return;
+        
+        setSyncing(true);
+        try {
+            const results = await syncToSupabase();
+            if (results.errors.length > 0) {
+                alert('พบข้อผิดพลาดบางประการ:\n' + results.errors.join('\n'));
+            } else {
+                alert(`ซิงค์ข้อมูลสำเร็จ!\n- พนักงาน: ${results.staff}\n- งาน: ${results.jobs}\n- การมอบหมาย: ${results.allocations}\n- อื่นๆ: ${results.subTasks + results.progressLogs} รายการ`);
+            }
+        } catch (err) {
+            alert('เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
     const handleReset = () => {
         if (confirm('รีเซ็ตข้อมูลทั้งหมดเป็นค่าเริ่มต้นใช่หรือไม่? การดำเนินการนี้ไม่สามารถยกเลิกได้')) {
             resetAllData();
@@ -90,15 +113,15 @@ export default function Settings() {
                         <div className="form-grid">
                             <div className="input-group">
                                 <label>เวลาเริ่มงาน</label>
-                                <input className="input" type="time" value={params.workStartTime || ''} onChange={e => updateParam('workStartTime', e.target.value)} />
+                                <TimeInput24 value={params.workStartTime || ''} onChange={e => updateParam('workStartTime', e.target.value)} />
                             </div>
                             <div className="input-group">
                                 <label>เวลาเลิกงาน</label>
-                                <input className="input" type="time" value={params.workEndTime || ''} onChange={e => updateParam('workEndTime', e.target.value)} />
+                                <TimeInput24 value={params.workEndTime || ''} onChange={e => updateParam('workEndTime', e.target.value)} />
                             </div>
                             <div className="input-group">
                                 <label>เริ่มพักเที่ยง</label>
-                                <input className="input" type="time" value={params.lunchBreakStart || ''} onChange={e => updateParam('lunchBreakStart', e.target.value)} />
+                                <TimeInput24 value={params.lunchBreakStart || ''} onChange={e => updateParam('lunchBreakStart', e.target.value)} />
                             </div>
                             <div className="input-group">
                                 <label>ระยะเวลาพักเที่ยง (นาที)</label>
@@ -106,7 +129,7 @@ export default function Settings() {
                             </div>
                             <div className="input-group">
                                 <label>เริ่มพักเย็นเมื่อทำเกินเวลา</label>
-                                <input className="input" type="time" value={params.dinnerBreakThreshold || ''} onChange={e => updateParam('dinnerBreakThreshold', e.target.value)} />
+                                <TimeInput24 value={params.dinnerBreakThreshold || ''} onChange={e => updateParam('dinnerBreakThreshold', e.target.value)} />
                             </div>
                             <div className="input-group">
                                 <label>ระยะเวลาพักเย็น (นาที)</label>
@@ -155,7 +178,7 @@ export default function Settings() {
                     <div className="card-body">
                         {/* Add Holiday */}
                         <div className="holiday-add-row">
-                            <input className="input" type="date" value={newHoliday.date} onChange={e => setNewHoliday(prev => ({ ...prev, date: e.target.value }))} />
+                            <DateInputDMY value={newHoliday.date} onChange={e => setNewHoliday(prev => ({ ...prev, date: e.target.value }))} />
                             <input className="input" placeholder="ชื่อวันหยุด" value={newHoliday.name} onChange={e => setNewHoliday(prev => ({ ...prev, name: e.target.value }))} />
                             <select className="select" value={newHoliday.type} onChange={e => setNewHoliday(prev => ({ ...prev, type: e.target.value }))}>
                                 <option value="Public">วันหยุดราชการ</option>
@@ -171,7 +194,7 @@ export default function Settings() {
                             {(holidays || []).sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(h => (
                                 <div key={h.id} className="holiday-item">
                                     <div className="holiday-info">
-                                        <span className="holiday-date">{h.date}</span>
+                                        <span className="holiday-date">{formatDate(h.date)}</span>
                                         <span className="holiday-name">{h.name}</span>
                                         <span className={`badge ${h.type === 'Public' ? 'badge-in-progress' : 'badge-review'}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
                                             {h.type}
@@ -190,10 +213,14 @@ export default function Settings() {
             {/* Data Management */}
             <div className="card" style={{ marginTop: 'var(--space-5)' }}>
                 <div className="card-header">
-                    <h3>Data Management</h3>
+                    <h3>Data Management & Online Sync</h3>
                 </div>
                 <div className="card-body">
-                    <div className="data-actions">
+                    <div className="data-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button className="btn btn-primary" onClick={handleSync} disabled={syncing} style={{ backgroundColor: '#3ecf8e', borderColor: '#3ecf8e' }}>
+                            {syncing ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
+                            {syncing ? ' กำลังซิงค์...' : ' อัพโหลดข้อมูลขึ้น Supabase (Online)'}
+                        </button>
                         <button className="btn btn-secondary" onClick={handleExport}>
                             <Download size={16} /> Export All Data (JSON)
                         </button>
@@ -204,6 +231,9 @@ export default function Settings() {
                         <button className="btn btn-danger" onClick={handleReset}>
                             <RotateCcw size={16} /> Reset All Data
                         </button>
+                    </div>
+                    <div style={{ marginTop: '15px', fontSize: '12px', color: '#666', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+                        <strong>คำแนะนำ:</strong> การอัพโหลดข้อมูลขึ้น Supabase จะทำให้ข้อมูลที่อยู่ในเครื่องนี้ (LocalStorage) ถูกนำไปเก็บไว้บนฐานข้อมูลออนไลน์ เพื่อให้ใช้งานร่วมกับเครื่องอื่นๆ ได้
                     </div>
                 </div>
             </div>

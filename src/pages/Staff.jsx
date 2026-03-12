@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { getStaff, saveStaffMember, deleteStaffMember, getAllocationsByStaff, getJobs } from '../data/store';
 import { createStaff, STAFF_ROLES, STAFF_SKILLS } from '../data/models';
 import { calculateOvertime, calculateDailyPay } from '../utils/overtime';
-import { statusToKey, getRoleColor } from '../utils/helpers';
+import { statusToKey, getRoleColor, formatDate } from '../utils/helpers';
 import { read, utils, writeFile } from 'xlsx';
 import './Staff.css';
 
@@ -17,10 +17,10 @@ export default function Staff() {
     const [editingStaff, setEditingStaff] = useState(null);
     const [selectedStaff, setSelectedStaff] = useState(null);
     const [jobs, setJobs] = useState([]);
-    
+
     // Multi-select state
     const [selectedIds, setSelectedIds] = useState([]);
-    
+
     // Sorting state
     const [sortConfig, setSortOrder] = useState({ key: 'id', direction: 'asc' });
 
@@ -35,7 +35,7 @@ export default function Staff() {
             const { data: staffData, error: staffError } = await supabase
                 .from('staff')
                 .select('*');
-            
+
             if (staffError) throw staffError;
 
             // Map database snake_case to camelCase
@@ -55,8 +55,23 @@ export default function Staff() {
             setStaffList(formattedStaff);
             setSelectedIds([]); // Clear selection after fetch
 
-            // Fetch Jobs
-            setJobs(getJobs());
+            // Fetch Jobs from Supabase (with assignedStaffIds derived from allocations)
+            const { data: allocData } = await supabase.from('allocations').select('job_id, staff_id');
+            const { data: jobsData } = await supabase.from('jobs').select('*').order('created_at', { ascending: false });
+            if (jobsData) {
+                setJobs(jobsData.map(j => ({
+                    ...j,
+                    qtNumber: j.qt_number,
+                    projectName: j.project_name,
+                    clientName: j.client_name,
+                    jobType: j.job_type,
+                    startDate: j.start_date,
+                    endDate: j.end_date,
+                    status: j.status,
+                    overallProgress: j.overall_progress,
+                    assignedStaffIds: (allocData || []).filter(a => a.job_id === j.id).map(a => a.staff_id)
+                })));
+            }
         } catch (error) {
             console.error('Error fetching data:', error);
             alert('ไม่สามารถดึงข้อมูลพนักงานได้');
@@ -115,7 +130,7 @@ export default function Staff() {
     };
 
     const toggleSelect = (id) => {
-        setSelectedIds(prev => 
+        setSelectedIds(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
     };
@@ -129,7 +144,7 @@ export default function Staff() {
                     .from('staff')
                     .delete()
                     .in('id', selectedIds);
-                
+
                 if (error) throw error;
                 alert('ลบข้อมูลพนักงานเรียบร้อยแล้ว');
                 fetchData();
@@ -144,8 +159,8 @@ export default function Staff() {
 
     const SortIcon = ({ columnKey }) => {
         if (sortConfig.key !== columnKey) return <ArrowUpDown size={14} style={{ marginLeft: '4px', opacity: 0.3 }} />;
-        return sortConfig.direction === 'asc' ? 
-            <ArrowUp size={14} style={{ marginLeft: '4px', color: 'var(--brand-primary)' }} /> : 
+        return sortConfig.direction === 'asc' ?
+            <ArrowUp size={14} style={{ marginLeft: '4px', color: 'var(--brand-primary)' }} /> :
             <ArrowDown size={14} style={{ marginLeft: '4px', color: 'var(--brand-primary)' }} />;
     };
 
@@ -294,7 +309,6 @@ export default function Staff() {
                 'เบอร์โทร': '0812345678'
             }
         ];
-        const worksheet = utils.sheet_to_json(templateData); // Fix: this should be json_to_sheet
         const workbook = utils.book_new();
         utils.book_append_sheet(workbook, utils.json_to_sheet(templateData), 'Template');
         writeFile(workbook, 'wmc-staff-template.xlsx');
@@ -364,8 +378,8 @@ export default function Staff() {
                         <thead>
                             <tr>
                                 <th style={{ width: '40px' }}>
-                                    <input 
-                                        type="checkbox" 
+                                    <input
+                                        type="checkbox"
                                         checked={filtered.length > 0 && selectedIds.length === filtered.length}
                                         onChange={toggleSelectAll}
                                     />
@@ -401,8 +415,8 @@ export default function Staff() {
                                         onClick={() => setSelectedStaff(member)}
                                     >
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            <input 
-                                                type="checkbox" 
+                                            <input
+                                                type="checkbox"
                                                 checked={isSelected}
                                                 onChange={() => toggleSelect(member.id)}
                                             />
@@ -522,7 +536,7 @@ function StaffDetailModal({ staffMember, jobs, onClose }) {
                                             <td style={{ fontWeight: 600 }}>{j.qtNumber || '-'}</td>
                                             <td>{j.projectName}</td>
                                             <td>{j.clientName}</td>
-                                            <td style={{ fontSize: '12px' }}>{j.startDate} → {j.endDate}</td>
+                                            <td style={{ fontSize: '12px' }}>{formatDate(j.startDate)} → {formatDate(j.endDate)}</td>
                                             <td>
                                                 <span className={`badge badge-${statusToKey(j.status)}`}>
                                                     {j.status}

@@ -11,7 +11,7 @@ import './Dashboard.css';
 
 export default function Dashboard({ user }) {
     const todayStr = getTodayStr();
-    const [period, setPeriod] = useState('week'); 
+    const [period, setPeriod] = useState('week');
     const [customStart, setCustomStart] = useState(todayStr);
     const [customEnd, setCustomEnd] = useState(todayStr);
     const [selectedStaff, setSelectedStaff] = useState(null);
@@ -20,7 +20,7 @@ export default function Dashboard({ user }) {
     const [staff, setStaff] = useState([]);
     const [allocations, setAllocations] = useState([]);
     const [loading, setLoading] = useState(true);
-    
+
     const currentDate = useMemo(() => parseISO(todayStr), [todayStr]);
 
     useEffect(() => { fetchData(); }, []);
@@ -36,7 +36,13 @@ export default function Dashboard({ user }) {
         if (!isSilent) setLoading(true);
         try {
             const { data: staffData } = await supabase.from('staff').select('*');
-            if (staffData) setStaff(staffData.map(s => ({ id: s.id, nickname: s.nickname, fullName: s.full_name, role: s.role, isActive: s.is_active })));
+            const staffMap = {};
+            if (staffData) {
+                setStaff(staffData.map(s => {
+                    staffMap[s.id] = s.nickname;
+                    return { id: s.id, nickname: s.nickname, fullName: s.full_name, role: s.role, isActive: s.is_active };
+                }));
+            }
 
             const { data: jobsData } = await supabase.from('jobs').select('*, sub_tasks (*), attachments (*), progress_logs (*, log_staff_assignments(staff_id), attachments(*))');
             const { data: allocData } = await supabase.from('allocations').select('*');
@@ -46,16 +52,26 @@ export default function Dashboard({ user }) {
                 setJobs(jobsData.map(j => {
                     const jobAllocs = (allocData || []).filter(a => a.job_id === j.id);
                     const uniqueStaffIds = [...new Set(jobAllocs.map(a => a.staff_id))];
+
+                    // Group allocations by date to get daily tasks
+                    const tasksByDate = {};
+                    jobAllocs.forEach(a => {
+                        if (!tasksByDate[a.date]) tasksByDate[a.date] = { date: a.date, task: a.task, staffNames: [] };
+                        if (staffMap[a.staff_id]) tasksByDate[a.date].staffNames.push(staffMap[a.staff_id]);
+                    });
+                    const dailyTasks = Object.values(tasksByDate).sort((a, b) => new Date(b.date) - new Date(a.date));
+
                     return {
-                        id: j.id, qtNumber: j.qt_number, projectName: j.project_name, clientName: j.client_name, jobType: j.job_type, status: j.status, startDate: j.start_date, endDate: j.end_date, priority: j.priority, createdBy: j.created_by, notes: j.notes, overallProgress: j.overall_progress, currentIssues: j.current_issues, defaultCheckIn: j.default_check_in, defaultCheckOut: j.default_check_out,
+                        id: j.id, qtNumber: j.qt_number, projectName: j.project_name, clientName: j.client_name, jobType: j.job_type, status: j.status, startDate: j.start_date, endDate: j.end_date, priority: j.priority, createdBy: j.created_by, notes: j.notes, fixReason: j.fix_reason, overallProgress: j.overall_progress, currentIssues: j.current_issues, currentIssuesDate: j.current_issues_date, currentIssuesBy: j.current_issues_by, defaultCheckIn: j.default_check_in, defaultCheckOut: j.default_check_out,
                         subTasks: (j.sub_tasks || []).map(st => ({ id: st.id, title: st.title, isCompleted: st.is_completed })),
                         attachments: (j.attachments || []).map(a => ({ id: a.id, name: a.name, url: a.url, type: a.type })),
                         progressLogs: (j.progress_logs || []).map(pl => ({
-                            id: pl.id, date: pl.log_date, text: pl.text, author: pl.author, 
+                            id: pl.id, date: pl.log_date, text: pl.text, author: pl.author,
                             workerIds: (pl.log_staff_assignments || []).map(lsa => lsa.staff_id),
                             attachments: (pl.attachments || []).map(la => ({ id: la.id, name: la.name, url: la.url, type: la.type }))
                         })).sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id),
-                        assignedStaffIds: uniqueStaffIds
+                        assignedStaffIds: uniqueStaffIds,
+                        dailyTasks
                     };
                 }));
             }
@@ -106,7 +122,7 @@ export default function Dashboard({ user }) {
     return (
         <div className="page-content">
             <div className="page-header">
-                <div><h1>ศูนย์ควบคุมปฏิบัติการ <small style={{fontSize:'10px', opacity:0.5}}>v18:00</small></h1><p className="subtitle">ภาพรวม {formatDate(dateRange.start.toISOString())} - {formatDate(dateRange.end.toISOString())}</p></div>
+                <div><h1>ศูนย์ควบคุมปฏิบัติการ <small style={{ fontSize: '10px', opacity: 0.5 }}>v18:00</small></h1><p className="subtitle">ภาพรวม {formatDate(dateRange.start.toISOString())} - {formatDate(dateRange.end.toISOString())}</p></div>
                 <div className="period-selector">{['day', 'week', 'month', 'year', 'custom'].map(p => (<button key={p} className={`period-btn ${period === p ? 'active' : ''}`} onClick={() => setPeriod(p)}>{p === 'day' ? 'วัน' : p === 'week' ? 'สัปดาห์' : p === 'month' ? 'เดือน' : p === 'year' ? 'ปี' : 'เลือกเอง'}</button>))}</div>
             </div>
 
@@ -130,9 +146,9 @@ export default function Dashboard({ user }) {
             </div>
 
             <div className="card" style={{ marginTop: '20px' }}>
-                <div className="card-header"><h3>งานที่กำลังดำเนินการ</h3></div>
+                <div className="card-header"><h3>งานทั้งหมด ({jobs.length} งาน)</h3></div>
                 <div className="card-body" style={{ padding: 0 }}>
-                    <div className="table-wrapper"><table style={{ width: '100%' }}><thead><tr><th style={{ padding: '12px' }}>โปรเจกต์</th><th>ลูกค้า</th><th>สถานะ</th><th>คืบหน้า</th></tr></thead><tbody>{stats.activeJobs.map(job => (<tr key={job.id} onClick={() => setSelectedJob(job)} style={{ cursor: 'pointer' }}><td style={{ padding: '12px' }}><strong>{job.projectName}</strong></td><td>{job.clientName}</td><td><span className={`badge badge-${statusToKey(job.status)}`}>{job.status}</span></td><td>{job.overallProgress}%</td></tr>))}</tbody></table></div>
+                    <div className="table-wrapper"><table style={{ width: '100%' }}><thead><tr><th style={{ padding: '12px' }}>เลขที่ QT</th><th>โปรเจกต์</th><th>ลูกค้า</th><th>ประเภท</th><th>สถานะ</th><th>คืบหน้า</th><th>ระยะเวลา</th></tr></thead><tbody>{(jobs || []).map(job => (<tr key={job.id} onClick={() => setSelectedJob(job)} style={{ cursor: 'pointer' }}><td style={{ padding: '12px', fontWeight: 600 }}>{job.qtNumber || '-'}</td><td><strong>{job.projectName}</strong></td><td>{job.clientName}</td><td><span className={`badge badge-${jobTypeToKey(job.jobType)}`} style={{ fontSize: '11px' }}>{job.jobType}</span></td><td><span className={`badge badge-${statusToKey(job.status)}`}>{job.status}</span></td><td>{job.overallProgress || 0}%</td><td style={{ fontSize: '12px' }}>{formatDate(job.startDate)} - {formatDate(job.endDate)}</td></tr>))}</tbody></table></div>
                 </div>
             </div>
 

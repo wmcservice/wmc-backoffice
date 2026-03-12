@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Sun, Moon, Menu, Bell, Search, LogOut, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { supabase } from '../lib/supabaseClient';
-import { formatDateShort } from '../utils/helpers';
+import { formatDateShort, formatDateTime } from '../utils/helpers';
 import './Topbar.css';
 
 export default function Topbar({ onMenuToggle, user }) {
@@ -14,7 +14,7 @@ export default function Topbar({ onMenuToggle, user }) {
 
     useEffect(() => {
         fetchNotifications();
-        
+
         // Setup real-time listener for jobs changes
         const channel = supabase
             .channel('jobs-changes')
@@ -102,8 +102,8 @@ export default function Topbar({ onMenuToggle, user }) {
 
             <div className="topbar-right">
                 <div className="notifications-container" ref={notificationRef}>
-                    <button 
-                        className={`topbar-icon-btn ${showNotifications ? 'active' : ''}`} 
+                    <button
+                        className={`topbar-icon-btn ${showNotifications ? 'active' : ''}`}
                         onClick={() => setShowNotifications(!showNotifications)}
                         title="การแจ้งเตือน"
                     >

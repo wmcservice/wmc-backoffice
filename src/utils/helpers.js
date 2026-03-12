@@ -5,6 +5,23 @@ export function formatDate(dateStr) {
     return format(parseISO(dateStr), 'dd/MM/yyyy');
 }
 
+export function formatDateTime(dateStr) {
+    if (!dateStr) return '';
+    return format(parseISO(dateStr), 'dd/MM/yyyy HH:mm');
+}
+
+export function formatTime(timeStr) {
+    if (!timeStr) return '';
+    // If it's already in HH:mm format, return as-is
+    if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
+    // If it's an ISO string, extract time
+    try {
+        return format(parseISO(timeStr), 'HH:mm');
+    } catch {
+        return timeStr;
+    }
+}
+
 export function formatDateShort(dateStr) {
     if (!dateStr) return '';
     return format(parseISO(dateStr), 'dd/MM');

@@ -34,25 +34,42 @@ export default function Scheduler({ user }) {
         try {
             const { data: sData } = await supabase.from('staff').select('*').order('nickname');
             setStaff(sData || []);
+            const staffMap = {};
+            (sData || []).forEach(s => staffMap[s.id] = s.nickname);
+
             const { data: aData } = await supabase.from('allocations').select('*');
             setAllocations(aData || []);
             const { data: jData } = await supabase.from('jobs').select('*, sub_tasks (*), attachments (*), progress_logs (*, log_staff_assignments(staff_id))').order('created_at', { ascending: false });
             if (jData) {
-                setJobs(jData.map(j => ({
-                    ...j,
-                    qtNumber: j.qt_number, projectName: j.project_name, clientName: j.client_name,
-                    jobType: j.job_type, startDate: j.start_date, endDate: j.end_date,
-                    priority: j.priority, notes: j.notes, createdBy: j.created_by,
-                    overallProgress: j.overall_progress, currentIssues: j.current_issues,
-                    defaultCheckIn: j.default_check_in, defaultCheckOut: j.default_check_out,
-                    subTasks: (j.sub_tasks || []).map(st => ({ id: st.id, title: st.title, isCompleted: st.is_completed })),
-                    attachments: (j.attachments || []).map(at => ({ id: at.id, name: at.name, url: at.url, type: at.type })),
-                    progressLogs: (j.progress_logs || []).map(pl => ({
-                        id: pl.id, date: pl.log_date, text: pl.text, author: pl.author, 
-                        workerIds: (pl.log_staff_assignments || []).map(lsa => lsa.staff_id)
-                    })).sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id),
-                    assignedStaffIds: [...new Set((aData || []).filter(a => a.job_id === j.id).map(a => a.staff_id))]
-                })));
+                setJobs(jData.map(j => {
+                    const jobAllocs = (aData || []).filter(a => a.job_id === j.id);
+                    const uniqueStaffIds = [...new Set(jobAllocs.map(a => a.staff_id))];
+
+                    // Group allocations by date to get daily tasks
+                    const tasksByDate = {};
+                    jobAllocs.forEach(a => {
+                        if (!tasksByDate[a.date]) tasksByDate[a.date] = { date: a.date, task: a.task, staffNames: [] };
+                        if (staffMap[a.staff_id]) tasksByDate[a.date].staffNames.push(staffMap[a.staff_id]);
+                    });
+                    const dailyTasks = Object.values(tasksByDate).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    return {
+                        ...j,
+                        qtNumber: j.qt_number, projectName: j.project_name, clientName: j.client_name,
+                        jobType: j.job_type, startDate: j.start_date, endDate: j.end_date,
+                        priority: j.priority, notes: j.notes, createdBy: j.created_by, fixReason: j.fix_reason,
+                        overallProgress: j.overall_progress, currentIssues: j.current_issues, currentIssuesDate: j.current_issues_date, currentIssuesBy: j.current_issues_by,
+                        defaultCheckIn: j.default_check_in, defaultCheckOut: j.default_check_out,
+                        subTasks: (j.sub_tasks || []).map(st => ({ id: st.id, title: st.title, isCompleted: st.is_completed })),
+                        attachments: (j.attachments || []).map(at => ({ id: at.id, name: at.name, url: at.url, type: at.type })),
+                        progressLogs: (j.progress_logs || []).map(pl => ({
+                            id: pl.id, date: pl.log_date, text: pl.text, author: pl.author,
+                            workerIds: (pl.log_staff_assignments || []).map(lsa => lsa.staff_id)
+                        })).sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id),
+                        assignedStaffIds: uniqueStaffIds,
+                        dailyTasks
+                    };
+                }));
             }
         } catch (err) { console.error(err); } finally { if (!isSilent) setLoading(false); }
     };
@@ -85,7 +102,7 @@ export default function Scheduler({ user }) {
     return (
         <div className="page-content scheduler-page">
             <div className="page-header">
-                <div><h1>ตารางงาน <small style={{fontSize:'10px', color:'var(--text-tertiary)'}}>v16:40</small></h1><p className="subtitle">มอบหมายงานและติดตามความคืบหน้า</p></div>
+                <div><h1>ตารางงาน <small style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>v16:40</small></h1><p className="subtitle">มอบหมายงานและติดตามความคืบหน้า</p></div>
                 <div className="header-actions">
                     <div className="view-mode-selector"><button className={`view-btn ${viewMode === 'week' ? 'active' : ''}`} onClick={() => setViewMode('week')}>สัปดาห์</button><button className={`view-btn ${viewMode === 'month' ? 'active' : ''}`} onClick={() => setViewMode('month')}>เดือน</button></div>
                     <button className="btn btn-primary" onClick={() => { setEditingJob(null); setShowJobModal(true); }}><Plus size={16} /> เพิ่มงานใหม่</button>
@@ -103,7 +120,15 @@ export default function Scheduler({ user }) {
                 <div className="scheduler-grid">
                     {currentRangeDates.map(dateStr => {
                         const dayAllocs = allocations.filter(a => a.date === dateStr);
-                        const uniqueJobIds = [...new Set(dayAllocs.map(a => a.job_id))];
+                        const allocJobIds = [...new Set(dayAllocs.map(a => a.job_id))];
+
+                        // Also include jobs whose date range covers this day (even without allocations)
+                        const dateRangeJobIds = jobs
+                            .filter(j => j.startDate && j.endDate && dateStr >= j.startDate && dateStr <= j.endDate)
+                            .map(j => j.id);
+
+                        const uniqueJobIds = [...new Set([...allocJobIds, ...dateRangeJobIds])];
+
                         return (
                             <div key={dateStr} className={`scheduler-day ${dateStr === today ? 'today' : ''}`}>
                                 <div className="day-header"><span className="day-name">{formatDay(dateStr)}</span><div className="day-date">{parseISO(dateStr).getDate()} {dateStr === today && <span className="today-badge">วันนี้</span>}</div></div>
@@ -116,7 +141,7 @@ export default function Scheduler({ user }) {
                                             <div key={jobId} className={`scheduler-job-card status-${statusToKey(job.status)}`} onClick={() => setSelectedJob(job)}>
                                                 <div className="sj-header"><span className="sj-name">{job.projectName}</span></div>
                                                 <div className="sj-meta"><span className="sj-type">{job.jobType}</span><span className="sj-time-range">{job.defaultCheckIn}-{job.defaultCheckOut}</span></div>
-                                                <div className="sj-staff">{workers.map(w => <span key={w.id} className="sj-staff-chip">{w.nickname}</span>)}</div>
+                                                <div className="sj-staff">{workers.length > 0 ? workers.map(w => <span key={w.id} className="sj-staff-chip">{w.nickname}</span>) : <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>ยังไม่มีพนักงาน</span>}</div>
                                             </div>
                                         );
                                     }) : <div className="day-empty">ไม่มีงาน</div>}

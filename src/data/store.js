@@ -6,6 +6,10 @@ const KEYS = {
     allocations: 'wmc_allocations',
     parameters: 'wmc_parameters',
     holidays: 'wmc_holidays',
+    progressLogs: 'wmc_progress_logs',
+    logStaffAssignments: 'wmc_log_staff_assignments',
+    subTasks: 'wmc_sub_tasks',
+    attachments: 'wmc_attachments',
 };
 
 function load(key, fallback) {
@@ -36,6 +40,7 @@ export function getJobs() { return load(KEYS.jobs, []); }
 export function getJob(id) { return getJobs().find(j => j.id === id); }
 export function saveJob(job) {
     const jobs = getJobs();
+    if (!job.id) job.id = Math.random().toString(36).substr(2, 9);
     const idx = jobs.findIndex(j => j.id === job.id);
     job.updatedAt = new Date().toISOString();
     if (idx >= 0) jobs[idx] = job; else jobs.push(job);
@@ -118,6 +123,56 @@ export function deleteHoliday(id) {
 }
 export function isHoliday(dateStr) {
     return getHolidays().some(h => h.date === dateStr);
+}
+
+// ─── Progress Logs ───────────────────────────────
+export function getProgressLogs() { return load(KEYS.progressLogs, []); }
+export function saveProgressLog(log) {
+    const all = getProgressLogs();
+    if (!log.id) log.id = Math.random().toString(36).substr(2, 9);
+    const idx = all.findIndex(l => l.id === log.id);
+    if (idx >= 0) all[idx] = log; else all.push(log);
+    save(KEYS.progressLogs, all);
+    return log;
+}
+export function deleteProgressLog(id) {
+    save(KEYS.progressLogs, getProgressLogs().filter(l => l.id !== id));
+    // Also remove related staff assignments
+    save(KEYS.logStaffAssignments, getLogStaffAssignments().filter(a => a.logId !== id));
+}
+
+// ─── Log Staff Assignments ───────────────────────
+export function getLogStaffAssignments() { return load(KEYS.logStaffAssignments, []); }
+export function saveLogStaffAssignment(assignment) {
+    const all = getLogStaffAssignments();
+    if (!assignment.id) assignment.id = Math.random().toString(36).substr(2, 9);
+    all.push(assignment);
+    save(KEYS.logStaffAssignments, all);
+    return assignment;
+}
+
+// ─── Sub Tasks ───────────────────────────────────
+export function getSubTasks() { return load(KEYS.subTasks, []); }
+export function saveSubTask(task) {
+    const all = getSubTasks();
+    if (!task.id) task.id = Math.random().toString(36).substr(2, 9);
+    const idx = all.findIndex(t => t.id === task.id);
+    if (idx >= 0) all[idx] = task; else all.push(task);
+    save(KEYS.subTasks, all);
+    return task;
+}
+export function deleteSubTasksByJobId(jobId) {
+    save(KEYS.subTasks, getSubTasks().filter(t => t.jobId !== jobId));
+}
+
+// ─── Attachments ─────────────────────────────────
+export function getAttachments() { return load(KEYS.attachments, []); }
+export function saveAttachment(att) {
+    const all = getAttachments();
+    if (!att.id) att.id = Math.random().toString(36).substr(2, 9);
+    all.push(att);
+    save(KEYS.attachments, all);
+    return att;
 }
 
 // ─── Data Export/Import ──────────────────────────
