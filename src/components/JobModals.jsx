@@ -366,7 +366,7 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
                                                 const prog = Math.round((ut.filter(x => x.isCompleted).length / ut.length) * 100);
                                                 await supabase.from('jobs').update({ overall_progress: prog, status: prog === 100 ? 'เสร็จสมบูรณ์' : job.status }).eq('id', job.id);
                                                 await supabase.from('sub_tasks').delete().eq('job_id', job.id);
-                                                await supabase.from('sub_tasks').insert(ut.map(x => ({ job_id: job.id, title: x.title, is_completed: x.isCompleted })));
+                                                await supabase.from('sub_tasks').insert(ut.map(x => ({ id: x.id || crypto.randomUUID(), job_id: job.id, title: x.title, is_completed: x.isCompleted })));
                                                 onUpdate();
                                             }}
                                         />
