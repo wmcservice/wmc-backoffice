@@ -5,6 +5,7 @@ import {
     Calendar,
     Users,
     BarChart3,
+    FileText,
     Settings,
     ChevronLeft,
     ChevronRight,
@@ -18,6 +19,7 @@ const navItems = [
     { path: '/scheduler', icon: Calendar, label: 'ตารางงาน' },
     { path: '/staff', icon: Users, label: 'พนักงาน' },
     { path: '/performance', icon: BarChart3, label: 'ประสิทธิภาพ' },
+    { path: '/reports', icon: FileText, label: 'รายงาน' },
     { path: '/settings', icon: Settings, label: 'ตั้งค่า' },
 ];
 

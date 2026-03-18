@@ -1,0 +1,374 @@
+/* --- Reports Page Styles --- */
+
+.reports-page {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Base A4 simulation for preview */
+.printable-a4 {
+    background: #fff;
+    width: 100%;
+    max-width: 950px; /* A4 aspect ratio approximation */
+    margin: 0 auto;
+    padding: 2rem 2.5rem;
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-primary);
+    color: #0f172a;
+    font-family: 'Inter', -apple-system, sans-serif;
+    transition: all 0.2s;
+}
+
+/* Inside Preview Typography */
+.print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+}
+
+.print-logo-col h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.5px;
+    color: #0f172a;
+}
+
+.print-logo-col p {
+    font-size: 14px;
+    margin: 0;
+    color: #475569;
+    font-weight: 500;
+}
+
+.print-meta-col {
+    text-align: right;
+    font-size: 12px;
+}
+
+.meta-row {
+    margin-bottom: 4px;
+}
+.meta-row:last-child {
+    margin-bottom: 0;
+}
+
+.meta-label {
+    color: #64748b;
+    margin-right: 8px;
+    font-weight: 600;
+}
+
+.meta-value {
+    font-weight: 500;
+    color: #0f172a;
+}
+
+/* Stats Row */
+.print-summary-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.print-summary-stats .stat-box {
+    flex: 1;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-num {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+    color: #0f172a;
+}
+
+.stat-text {
+    font-size: 11px;
+    color: #475569;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Empty State */
+.print-empty {
+    text-align: center;
+    padding: 60px 0;
+    color: #94a3b8;
+}
+
+.print-empty svg {
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+/* Job Blocks */
+.print-jobs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.print-job-block {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    overflow: hidden;
+    page-break-inside: avoid; /* Prevents huge blocks breaking half-page in print */
+}
+
+.pj-header {
+    background: #f1f5f9;
+    padding: 12px 16px;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+.pj-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+}
+
+.pj-title-row h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.pj-status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.pj-status-badge.status-in-progress { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+.pj-status-badge.status-completed { background: #d1fae5; color: #059669; border: 1px solid #6ee7b7; }
+.pj-status-badge.status-needs-fix { background: #fee2e2; color: #b91c1c; border: 1px solid #dc2626; }
+.pj-status-badge.status-review { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }
+
+.pj-subtitle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 12px;
+    color: #475569;
+}
+
+.pj-subtitle-row strong {
+    color: #0f172a;
+    margin-right: 4px;
+}
+
+.pj-content {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 20px;
+    padding: 16px;
+}
+
+.pj-section {
+    margin-bottom: 16px;
+}
+.pj-section:last-child {
+    margin-bottom: 0;
+}
+
+.pj-section h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    border-bottom: 1px dotted #e2e8f0;
+    padding-bottom: 4px;
+}
+
+.pj-staff-list {
+    font-size: 12px;
+    color: #0f172a;
+    line-height: 1.5;
+}
+
+.pj-notes-text {
+    font-size: 12px;
+    color: #0f172a;
+    line-height: 1.5;
+}
+
+.pj-empty-text {
+    font-size: 12px;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Warnings */
+.pj-danger {
+    background: #fef2f2;
+    border-left: 3px solid #ef4444;
+    padding: 8px 12px;
+    border-radius: 0 4px 4px 0;
+}
+.pj-danger h4 { color: #b91c1c; border-bottom-color: #fca5a5; }
+.pj-danger div { font-size: 12px; color: #991b1b; }
+
+.pj-warning {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    padding: 8px 12px;
+    border-radius: 0 4px 4px 0;
+}
+.pj-warning h4 { color: #d97706; border-bottom-color: #fcd34d; }
+.pj-warning div { font-size: 12px; color: #b45309; line-height: 1.4; }
+
+
+/* Custom Checkbox UI */
+.pj-task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pj-task-list li {
+    font-size: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: #334155;
+}
+.pj-task-list li.completed {
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.checkbox-mock {
+    width: 12px;
+    height: 12px;
+    border: 1px solid #94a3b8;
+    border-radius: 2px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    position: relative;
+}
+.checkbox-mock.checked {
+    background-color: #cbd5e1;
+    border-color: #cbd5e1;
+}
+
+/* Logs */
+.pj-log-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.pj-log-list li {
+    font-size: 11px;
+    background: #f8fafc;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #f1f5f9;
+}
+.log-date {
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 2px;
+    font-size: 10px;
+}
+.log-text {
+    color: #0f172a;
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
+.log-more {
+    font-style: italic;
+    color: #94a3b8 !important;
+    text-align: center;
+    background: transparent !important;
+    border: none !important;
+}
+
+
+/* ── CSS PRINT MEDIA QUERY ── */
+@media print {
+    /* Hide the entire app layout outside of our printable area */
+    body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+    }
+
+    /* Hide EVERYTHING else: sidebar, topbar, filters */
+    .sidebar, .topbar, .no-print, .filters-card {
+        display: none !important;
+    }
+
+    /* Adjust main content layout so it doesn't leave gaps where menus used to be */
+    .app-layout {
+        display: block;
+        min-height: auto;
+    }
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Reset the Reports Page specifically */
+    .reports-page {
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .printable-a4 {
+        box-shadow: none !important;
+        border: none !important;
+        max-width: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Ensure text colors are pure black and white for printing */
+    .pj-header, .stat-box, .pj-task-list li, .log-text {
+        color: #000 !important;
+    }
+
+    /* Backgrounds in print must sometimes be forced */
+    .pj-header {
+        background-color: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .pj-status-badge {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .stat-box {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .pj-warning, .pj-danger {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

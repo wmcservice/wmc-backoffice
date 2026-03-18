@@ -9,6 +9,7 @@ import Jobs from './pages/Jobs';
 import Scheduler from './pages/Scheduler';
 import StaffPage from './pages/Staff';
 import Performance from './pages/Performance';
+import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import './styles/global.css';
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/scheduler" element={<Scheduler user={session.user} />} />
             <Route path="/staff" element={<StaffPage />} />
             <Route path="/performance" element={<Performance />} />
+            <Route path="/reports" element={<Reports user={session.user} />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
