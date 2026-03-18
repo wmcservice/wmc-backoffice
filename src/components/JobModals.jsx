@@ -207,11 +207,11 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
         if (!newLog.trim()) return;
         const authorName = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'Admin';
         try {
-            const { data, error } = await supabase.from('progress_logs').insert([{ job_id: job.id, log_date: new Date().toISOString().split('T')[0], text: newLog, author: authorName }]).select();
+            const { data, error } = await supabase.from('progress_logs').insert([{ id: crypto.randomUUID(), job_id: job.id, log_date: new Date().toISOString().split('T')[0], text: newLog, author: authorName }]).select();
             if (error) throw error;
             const logId = data[0].id;
             if (logStaffIds.length > 0) {
-                await supabase.from('log_staff_assignments').insert(logStaffIds.map(sid => ({ log_id: logId, staff_id: sid })));
+                await supabase.from('log_staff_assignments').insert(logStaffIds.map(sid => ({ id: crypto.randomUUID(), log_id: logId, staff_id: sid })));
             }
             setNewLog('');
             onUpdate();
@@ -230,7 +230,7 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
         if (!staffId) return;
         try {
             // Check if already assigned on this date
-            await supabase.from('allocations').insert([{ job_id: job.id, staff_id: staffId, date: new Date().toISOString().split('T')[0], status: 'ได้รับมอบหมาย' }]);
+            await supabase.from('allocations').insert([{ id: crypto.randomUUID(), job_id: job.id, staff_id: staffId, date: new Date().toISOString().split('T')[0], status: 'ได้รับมอบหมาย' }]);
             onUpdate();
             setIsAdding(false);
         } catch (error) { console.error(error); }

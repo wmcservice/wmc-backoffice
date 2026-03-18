@@ -113,10 +113,10 @@ export default function Jobs({ user }) {
             if (job.assignedStaffIds?.length > 0) {
                 const { data: existing } = await supabase.from('allocations').select('staff_id').eq('job_id', jobId).eq('date', job.startDate);
                 const newToAlloc = job.assignedStaffIds.filter(sid => !(existing || []).map(a => a.staff_id).includes(sid));
-                if (newToAlloc.length > 0) await supabase.from('allocations').insert(newToAlloc.map(sid => ({ job_id: jobId, staff_id: sid, date: job.startDate, status: 'ได้รับมอบหมาย' })));
+                if (newToAlloc.length > 0) await supabase.from('allocations').insert(newToAlloc.map(sid => ({ id: crypto.randomUUID(), job_id: jobId, staff_id: sid, date: job.startDate, status: 'ได้รับมอบหมาย' })));
             }
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
-            if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ job_id: jobId, title: st.title, is_completed: st.isCompleted })));
+            if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ id: crypto.randomUUID(), job_id: jobId, title: st.title, is_completed: st.isCompleted })));
 
             await fetchData(true);
             setShowModal(false);
