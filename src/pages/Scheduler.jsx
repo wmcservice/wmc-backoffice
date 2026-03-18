@@ -79,7 +79,7 @@ export default function Scheduler({ user }) {
 
     const handleSaveJob = async (job) => {
         try {
-            const dbData = { qt_number: job.qtNumber, project_name: job.projectName, client_name: job.clientName, job_type: job.jobType, status: job.status, start_date: job.startDate, end_date: job.endDate, default_check_in: job.defaultCheckIn, default_check_out: job.defaultCheckOut, priority: job.priority, notes: job.notes, created_by: job.createdBy, overall_progress: job.overallProgress, current_issues: job.currentIssues, updated_at: new Date().toISOString() };
+            const dbData = { id: job.id, qt_number: job.qtNumber, project_name: job.projectName, client_name: job.clientName, job_type: job.jobType, status: job.status, start_date: job.startDate, end_date: job.endDate, default_check_in: job.defaultCheckIn, default_check_out: job.defaultCheckOut, priority: job.priority, notes: job.notes, created_by: job.createdBy, overall_progress: job.overallProgress, current_issues: job.currentIssues, updated_at: new Date().toISOString() };
             let jobId = job.id;
             if (job.id && jobs.some(j => j.id === job.id)) await supabase.from('jobs').update(dbData).eq('id', job.id);
             else { const { data } = await supabase.from('jobs').insert([dbData]).select(); jobId = data[0].id; }
