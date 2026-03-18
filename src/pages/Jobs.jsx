@@ -53,8 +53,11 @@ export default function Jobs({ user }) {
                 // Group allocations by date to get daily tasks
                 const tasksByDate = {};
                 jobAllocs.forEach(a => {
-                    if (!tasksByDate[a.date]) tasksByDate[a.date] = { date: a.date, task: a.task, staffNames: [] };
-                    if (staffMap[a.staff_id]) tasksByDate[a.date].staffNames.push(staffMap[a.staff_id]);
+                    if (!tasksByDate[a.date]) tasksByDate[a.date] = { date: a.date, task: a.task, staffNames: [], staffIds: [] };
+                    if (staffMap[a.staff_id]) {
+                        tasksByDate[a.date].staffNames.push(staffMap[a.staff_id]);
+                        tasksByDate[a.date].staffIds.push(a.staff_id);
+                    }
                 });
                 const dailyTasks = Object.values(tasksByDate).sort((a, b) => new Date(b.date) - new Date(a.date));
 

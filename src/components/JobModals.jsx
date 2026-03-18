@@ -169,6 +169,42 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
     const [logStaffIds, setLogStaffIds] = useState(job.assignedStaffIds || []);
     const [localIssues, setLocalIssues] = useState(job.currentIssues || '');
     const [issueSuccess, setIssueSuccess] = useState(false);
+    const [addingForDate, setAddingForDate] = useState(null);
+
+    const handleDailyAddMember = async (dateStr, staffId) => {
+        if (!staffId) return;
+        try {
+            await supabase.from('allocations').insert([{ 
+                id: crypto.randomUUID(), 
+                job_id: job.id, 
+                staff_id: staffId, 
+                date: dateStr, 
+                status: 'ได้รับมอบหมาย' 
+            }]);
+            onUpdate();
+            setAddingForDate(null);
+        } catch (error) { console.error(error); }
+    };
+
+    const handleDailyRemoveMember = async (dateStr, staffId) => {
+        if (!confirm('ต้องการลบทีมงานออกจากวันนี้?')) return;
+        try {
+            await supabase.from('allocations').delete().eq('job_id', job.id).eq('staff_id', staffId).eq('date', dateStr);
+            onUpdate();
+        } catch (error) { console.error(error); }
+    };
+
+    const getAllDates = () => {
+        if (!job.startDate || !job.endDate) return [];
+        const dates = [];
+        let curr = new Date(job.startDate + 'T12:00:00');
+        const end = new Date(job.endDate + 'T12:00:00');
+        while (curr <= end) {
+            dates.push(curr.toISOString().split('T')[0]);
+            curr.setDate(curr.getDate() + 1);
+        }
+        return dates;
+    };
 
     useEffect(() => {
         setLocalIssues(job.currentIssues || '');
@@ -371,17 +407,43 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
                     </div>
 
                     <div className="detail-section">
-                        <h4>ทีมงานและภารกิจประจำวัน</h4>
-                        <div className="log-list" style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {job.dailyTasks && job.dailyTasks.length > 0 ? job.dailyTasks.map((dt, idx) => (
-                                <div key={idx} style={{ padding: '10px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-primary)', fontSize: '13px' }}>
-                                    <div style={{ fontWeight: 600, marginBottom: '4px', color: 'var(--brand-primary)' }}>📅 {formatDate(dt.date)}</div>
-                                    <div style={{ marginBottom: '4px' }}><strong>ภารกิจ:</strong> {dt.task || <em style={{ color: 'var(--text-tertiary)' }}>ไม่ระบุภารกิจ</em>}</div>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                        <strong>ทีม:</strong> {dt.staffNames.length > 0 ? dt.staffNames.join(', ') : 'ยังไม่ระบุ'}
+                        <h4>ทีมงานรายวัน</h4>
+                        <div className="log-list" style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {getAllDates().map((dateStr, idx) => {
+                                const dt = (job.dailyTasks || []).find(d => d.date === dateStr) || { task: '', staffNames: [], staffIds: [] };
+                                const assignedIds = dt.staffIds || [];
+                                
+                                return (
+                                    <div key={idx} style={{ padding: '10px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-primary)', fontSize: '13px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <div style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>📅 {formatDate(dateStr)}</div>
+                                            <button className="btn btn-sm btn-outline" style={{ padding: '2px 8px', fontSize: '11px', height: '24px' }} onClick={() => setAddingForDate(addingForDate === dateStr ? null : dateStr)}>
+                                                {addingForDate === dateStr ? 'ยกเลิก' : '+ เพิ่มคน'}
+                                            </button>
+                                        </div>
+                                        {dt.task && <div style={{ marginBottom: '8px' }}><strong>ภารกิจ:</strong> {dt.task}</div>}
+                                        
+                                        {addingForDate === dateStr && (
+                                            <select className="select" onChange={e => handleDailyAddMember(dateStr, e.target.value)} defaultValue="" style={{ marginBottom: '8px', padding: '4px', fontSize: '12px' }}>
+                                                <option value="" disabled>เลือกพนักงาน</option>
+                                                {staff.filter(s => !assignedIds.includes(s.id)).map(s => <option key={s.id} value={s.id}>{s.nickname}</option>)}
+                                            </select>
+                                        )}
+                                        
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                            {assignedIds.length > 0 ? assignedIds.map((sid, i) => {
+                                                const sName = dt.staffNames[i] || staff.find(s => s.id === sid)?.nickname || 'Unknown';
+                                                return (
+                                                    <span key={sid} className="sj-staff-chip" style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-tertiary)', padding: '2px 6px', borderRadius: '4px' }}>
+                                                        {sName}
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDailyRemoveMember(dateStr, sid); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, display: 'flex' }}><X size={12} /></button>
+                                                    </span>
+                                                );
+                                            }) : <em style={{ color: 'var(--text-tertiary)' }}>ยังไม่มีคนทำงานในวันนี้</em>}
+                                        </div>
                                     </div>
-                                </div>
-                            )) : <small style={{ color: 'var(--text-tertiary)' }}>ยังไม่มีการมอบหมายงานรายวัน</small>}
+                                );
+                            })}
                         </div>
                     </div>
 
