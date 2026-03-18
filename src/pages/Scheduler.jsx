@@ -81,12 +81,28 @@ export default function Scheduler({ user }) {
             if (job.id && jobs.some(j => j.id === job.id)) await supabase.from('jobs').update(dbData).eq('id', job.id);
             else { const { data } = await supabase.from('jobs').insert([dbData]).select(); jobId = data[0].id; }
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
-            if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ job_id: jobId, title: st.title, is_completed: st.isCompleted })));
+            if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ id: crypto.randomUUID(), job_id: jobId, title: st.title, is_completed: st.isCompleted })));
             if (job.assignedStaffIds?.length > 0) {
-                const { data: existing } = await supabase.from('allocations').select('staff_id').eq('job_id', jobId).eq('date', job.startDate);
-                const existingIds = (existing || []).map(e => e.staff_id);
-                const newToAlloc = job.assignedStaffIds.filter(sid => !existingIds.includes(sid));
-                if (newToAlloc.length > 0) await supabase.from('allocations').insert(newToAlloc.map(sid => ({ job_id: jobId, staff_id: sid, date: job.startDate, status: 'ได้รับมอบหมาย' })));
+                const dates = [];
+                let curr = new Date(job.startDate + 'T12:00:00');
+                const end = new Date(job.endDate + 'T12:00:00');
+                while (curr <= end) {
+                    dates.push(curr.toISOString().split('T')[0]);
+                    curr.setDate(curr.getDate() + 1);
+                }
+                
+                const { data: existing } = await supabase.from('allocations').select('staff_id, date').eq('job_id', jobId).in('date', dates);
+                
+                const allocInserts = [];
+                dates.forEach(dStr => {
+                    const existingOnDate = (existing || []).filter(a => a.date === dStr).map(a => a.staff_id);
+                    const newToAlloc = job.assignedStaffIds.filter(sid => !existingOnDate.includes(sid));
+                    newToAlloc.forEach(sid => {
+                        allocInserts.push({ id: crypto.randomUUID(), job_id: jobId, staff_id: sid, date: dStr, status: 'ได้รับมอบหมาย' });
+                    });
+                });
+
+                if (allocInserts.length > 0) await supabase.from('allocations').insert(allocInserts);
             }
             await fetchData(); setShowJobModal(false); setEditingJob(null);
         } catch (err) { alert('Save Failed'); }
