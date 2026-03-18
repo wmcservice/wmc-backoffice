@@ -131,7 +131,7 @@ export function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }
                                 ))}
                             </div>
                         </div>
-                        <div className="input-group full-width" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '16px' }}>
+                        <div className="input-group full-width" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '16px', textAlign: 'left' }}>
                             <label>ทีมงานประจำโปรเจกต์</label>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-start' }}>
                                 {staff.map(s => (
