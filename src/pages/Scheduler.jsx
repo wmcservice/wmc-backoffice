@@ -32,7 +32,7 @@ export default function Scheduler({ user }) {
     const fetchData = async (isSilent = false) => {
         if (!isSilent) setLoading(true);
         try {
-            const { data: sData } = await supabase.from('staff').select('*').order('nickname');
+            const { data: sData } = await supabase.from('staff').select('*').eq('is_active', true);
             setStaff(sData || []);
             const staffMap = {};
             (sData || []).forEach(s => staffMap[s.id] = s.nickname);
