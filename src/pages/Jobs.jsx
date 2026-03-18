@@ -111,9 +111,26 @@ export default function Jobs({ user }) {
                 jobId = data[0].id;
             }
             if (job.assignedStaffIds?.length > 0) {
-                const { data: existing } = await supabase.from('allocations').select('staff_id').eq('job_id', jobId).eq('date', job.startDate);
-                const newToAlloc = job.assignedStaffIds.filter(sid => !(existing || []).map(a => a.staff_id).includes(sid));
-                if (newToAlloc.length > 0) await supabase.from('allocations').insert(newToAlloc.map(sid => ({ id: crypto.randomUUID(), job_id: jobId, staff_id: sid, date: job.startDate, status: 'ได้รับมอบหมาย' })));
+                const dates = [];
+                let curr = new Date(job.startDate + 'T12:00:00');
+                const end = new Date(job.endDate + 'T12:00:00');
+                while (curr <= end) {
+                    dates.push(curr.toISOString().split('T')[0]);
+                    curr.setDate(curr.getDate() + 1);
+                }
+                
+                const { data: existing } = await supabase.from('allocations').select('staff_id, date').eq('job_id', jobId).in('date', dates);
+                
+                const allocInserts = [];
+                dates.forEach(dStr => {
+                    const existingOnDate = (existing || []).filter(a => a.date === dStr).map(a => a.staff_id);
+                    const newToAlloc = job.assignedStaffIds.filter(sid => !existingOnDate.includes(sid));
+                    newToAlloc.forEach(sid => {
+                        allocInserts.push({ id: crypto.randomUUID(), job_id: jobId, staff_id: sid, date: dStr, status: 'ได้รับมอบหมาย' });
+                    });
+                });
+
+                if (allocInserts.length > 0) await supabase.from('allocations').insert(allocInserts);
             }
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
             if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ id: crypto.randomUUID(), job_id: jobId, title: st.title, is_completed: st.isCompleted })));

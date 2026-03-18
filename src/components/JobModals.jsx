@@ -229,8 +229,23 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
     const handleAddMember = async (staffId) => {
         if (!staffId) return;
         try {
-            // Check if already assigned on this date
-            await supabase.from('allocations').insert([{ id: crypto.randomUUID(), job_id: job.id, staff_id: staffId, date: new Date().toISOString().split('T')[0], status: 'ได้รับมอบหมาย' }]);
+            const dates = [];
+            let curr = new Date(job.startDate + 'T12:00:00');
+            const end = new Date(job.endDate + 'T12:00:00');
+            while (curr <= end) {
+                dates.push(curr.toISOString().split('T')[0]);
+                curr.setDate(curr.getDate() + 1);
+            }
+            
+            const allocInserts = dates.map(dStr => ({ 
+                id: crypto.randomUUID(), 
+                job_id: job.id, 
+                staff_id: staffId, 
+                date: dStr, 
+                status: 'ได้รับมอบหมาย' 
+            }));
+            
+            await supabase.from('allocations').insert(allocInserts);
             onUpdate();
             setIsAdding(false);
         } catch (error) { console.error(error); }
