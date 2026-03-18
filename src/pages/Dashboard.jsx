@@ -44,7 +44,7 @@ export default function Dashboard({ user }) {
                 }));
             }
 
-            const { data: jobsData } = await supabase.from('jobs').select('*, sub_tasks (*), attachments (*), progress_logs (*, log_staff_assignments(staff_id), attachments(*))');
+            const { data: jobsData } = await supabase.from('jobs').select('*, sub_tasks (*), attachments (*), progress_logs (*, log_staff_assignments(staff_id))');
             const { data: allocData } = await supabase.from('allocations').select('*');
             setAllocations(allocData || []);
 
