@@ -63,9 +63,21 @@ export function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }
                         </div>
                         <div className="input-group">
                             <label>ประเภทงาน</label>
-                            <select className="select" value={form.jobType} onChange={e => update('jobType', e.target.value)}>
+                            <select className="select" value={form.jobType?.startsWith('อื่นๆ') ? 'อื่นๆ' : form.jobType} onChange={e => update('jobType', e.target.value)}>
                                 {JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
+                            {form.jobType?.startsWith('อื่นๆ') && (
+                                <input 
+                                    className="input" 
+                                    style={{ marginTop: '8px' }} 
+                                    placeholder="ระบุรายละเอียด (เช่น งานล้างแอร์)..." 
+                                    value={form.jobType === 'อื่นๆ' ? '' : form.jobType.replace(/^อื่นๆ\s*\((.*?)\)$/, '$1').replace(/^อื่นๆ\s*/, '')} 
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        update('jobType', val.trim() ? `อื่นๆ (${val})` : 'อื่นๆ');
+                                    }} 
+                                />
+                            )}
                         </div>
                         <div className="input-group">
                             <label>ความสำคัญ</label>
