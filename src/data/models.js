@@ -76,10 +76,6 @@ export const createParameter = (overrides = {}) => ({
   lunchBreakDuration: 60,
   dinnerBreakThreshold: '20:00',
   dinnerBreakDuration: 60,
-  otRate1: 1.5,
-  otRate1MaxHours: 2,
-  otRate2: 2.0,
-  otRate3: 3.0,
   baseDailyRate: 400,
   ...overrides,
 });

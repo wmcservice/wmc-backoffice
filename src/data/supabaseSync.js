@@ -16,7 +16,11 @@ export async function syncToSupabase() {
         holidays: 0,
         subTasks: 0,
         progressLogs: 0,
-        errors: []
+        subTasks: 0,
+        attachments: 0,
+        logAssignments: 0,
+        errors: [],
+        count: 0
     };
 
     try {
@@ -35,8 +39,8 @@ export async function syncToSupabase() {
                 created_at: s.createdAt
             }));
             const { error: sErr } = await supabase.from('staff').upsert(staffToUpload);
-            if (sErr) results.errors.push(`Staff: ${sErr.message}`);
-            else results.staff = staffToUpload.length;
+            if (sErr) results.errors.push(`Staff Table: ${sErr.message} (Is the table created in Supabase?)`);
+            else { results.staff = staffToUpload.length; results.count += results.staff; }
         }
 
         // 2. Sync Jobs
@@ -65,8 +69,8 @@ export async function syncToSupabase() {
                 updated_at: j.updatedAt
             }));
             const { error: jErr } = await supabase.from('jobs').upsert(jobsToUpload);
-            if (jErr) results.errors.push(`Jobs: ${jErr.message}`);
-            else results.jobs = jobsToUpload.length;
+            if (jErr) results.errors.push(`Jobs Table: ${jErr.message} (Check if column names match?)`);
+            else { results.jobs = jobsToUpload.length; results.count += results.jobs; }
         }
 
         // 3. Sync Allocations
@@ -101,10 +105,6 @@ export async function syncToSupabase() {
                 lunch_break_duration: p.lunchBreakDuration,
                 dinner_break_threshold: p.dinnerBreakThreshold,
                 dinner_break_duration: p.dinnerBreakDuration,
-                ot_rate1: p.otRate1,
-                ot_rate1_max_hours: p.otRate1MaxHours,
-                ot_rate2: p.otRate2,
-                ot_rate3: p.otRate3,
                 base_daily_rate: p.baseDailyRate,
                 updated_at: new Date().toISOString()
             };

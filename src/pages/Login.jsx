@@ -129,10 +129,26 @@ export default function Login() {
                 </button>
 
                 <div className="login-footer">
-                    {/* ... (ปุ่มสลับเดิม) */}
                     <button onClick={() => setIsSignUp(!isSignUp)}>
                         {isSignUp ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? สมัครสมาชิกที่นี่'}
                     </button>
+                    
+                    <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px dashed #ddd', width: '100%' }}>
+                        <button 
+                            type="button"
+                            className="btn btn-outline" 
+                            style={{ width: '100%', color: '#c2410c', borderColor: '#fdba74', backgroundColor: '#fff7ed' }}
+                            onClick={() => {
+                                localStorage.setItem('wmc_use_offline', 'true');
+                                window.location.reload();
+                            }}
+                        >
+                            เข้าใช้งาน "โหมดออฟไลน์" (ใช้ข้อมูลในเครื่อง)
+                        </button>
+                        <p style={{ fontSize: '11px', color: '#9a3412', marginTop: '8px', textAlign: 'center' }}>
+                            *ใช้สำหรับกรณีที่คุณยังไม่ได้ตั้งค่า Supabase หรือต้องการดูข้อมูลเก่าในเครื่อง
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

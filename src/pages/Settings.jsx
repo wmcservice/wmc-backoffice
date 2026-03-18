@@ -148,24 +148,7 @@ export default function Settings() {
                             </div>
                         </div>
 
-                        <h4 className="section-title">อัตราค่าล่วงเวลา (OT)</h4>
                         <div className="form-grid">
-                            <div className="input-group">
-                                <label>อัตรา OT 1.5×</label>
-                                <input className="input" type="number" step="0.1" value={params.otRate1 || 0} onChange={e => updateParam('otRate1', parseFloat(e.target.value) || 0)} />
-                            </div>
-                            <div className="input-group">
-                                <label>ชม. สูงสุดของ OT 1</label>
-                                <input className="input" type="number" value={params.otRate1MaxHours || 0} onChange={e => updateParam('otRate1MaxHours', parseInt(e.target.value) || 0)} />
-                            </div>
-                            <div className="input-group">
-                                <label>อัตรา OT 2×</label>
-                                <input className="input" type="number" step="0.1" value={params.otRate2 || 0} onChange={e => updateParam('otRate2', parseFloat(e.target.value) || 0)} />
-                            </div>
-                            <div className="input-group">
-                                <label>อัตรา OT 3× (วันหยุด)</label>
-                                <input className="input" type="number" step="0.1" value={params.otRate3 || 0} onChange={e => updateParam('otRate3', parseFloat(e.target.value) || 0)} />
-                            </div>
                             <div className="input-group">
                                 <label>ค่าแรงพื้นฐานรายวัน (฿)</label>
                                 <input className="input" type="number" value={params.baseDailyRate || 0} onChange={e => updateParam('baseDailyRate', parseInt(e.target.value) || 0)} />

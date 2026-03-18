@@ -61,7 +61,7 @@ export function calculateOvertime(checkIn, checkOut, dateStr) {
         const overtimeMinutes = Math.max(0, totalMinutes - standardMinutes);
 
         // OT 1.5x: up to otRate1MaxHours
-        const ot15Max = params.otRate1MaxHours * 60;
+        const ot15Max = (params.otRate1MaxHours || 0) * 60;
         const ot15Minutes = Math.min(overtimeMinutes, ot15Max);
         ot15 = ot15Minutes / 60;
 
@@ -93,13 +93,13 @@ export function calculateDailyPay(otResult) {
 
     return {
         regularPay: otResult.regularHours * hourlyRate,
-        ot15Pay: otResult.ot15 * hourlyRate * params.otRate1,
-        ot20Pay: otResult.ot20 * hourlyRate * params.otRate2,
-        ot30Pay: otResult.ot30 * hourlyRate * params.otRate3,
+        ot15Pay: otResult.ot15 * hourlyRate * (params.otRate1 || 0),
+        ot20Pay: otResult.ot20 * hourlyRate * (params.otRate2 || 0),
+        ot30Pay: otResult.ot30 * hourlyRate * (params.otRate3 || 0),
         totalPay:
             otResult.regularHours * hourlyRate +
-            otResult.ot15 * hourlyRate * params.otRate1 +
-            otResult.ot20 * hourlyRate * params.otRate2 +
-            otResult.ot30 * hourlyRate * params.otRate3,
+            otResult.ot15 * hourlyRate * (params.otRate1 || 0) +
+            otResult.ot20 * hourlyRate * (params.otRate2 || 0) +
+            otResult.ot30 * hourlyRate * (params.otRate3 || 0),
     };
 }
