@@ -128,6 +128,11 @@ class MockQueryBuilder {
         return this; // Return this to allow .select() or other chaining
     }
 
+    upsert(rows) {
+        console.log(`[Offline Dev] Upsert into ${this.table}:`, rows);
+        return this.insert(rows);
+    }
+
     update(updates) {
         console.log(`[Offline Dev] Update ${this.table}:`, updates);
         const table = this.table;

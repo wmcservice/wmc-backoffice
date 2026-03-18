@@ -76,7 +76,7 @@ CREATE TABLE parameters (
     work_end_time TEXT,
     lunch_break_start TEXT,
     lunch_break_duration NUMERIC,
-    dinner_break_threshold NUMERIC,
+    dinner_break_threshold TEXT,
     dinner_break_duration NUMERIC,
     base_daily_rate NUMERIC,
     updated_at TIMESTAMPTZ DEFAULT NOW()

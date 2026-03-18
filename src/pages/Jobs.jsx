@@ -39,7 +39,7 @@ export default function Jobs({ user }) {
         if (!isSilent) setLoading(true);
         try {
             const { data: allocData } = await supabase.from('allocations').select('job_id, staff_id, task, date');
-            const { data, error } = await supabase.from('jobs').select('*, sub_tasks (*), attachments (*), progress_logs (*, log_staff_assignments(staff_id), attachments(*))').order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('jobs').select('*, sub_tasks (*), attachments (*), progress_logs (*, log_staff_assignments(staff_id))').order('created_at', { ascending: false });
             if (error) throw error;
 
             const { data: staffData } = await supabase.from('staff').select('id, nickname');
