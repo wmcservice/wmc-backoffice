@@ -7,6 +7,7 @@ import { getStatusColor, formatDateShort, getTodayStr, getJobDuration, statusToK
 import { STATUS_COLORS, JOB_STATUSES, JOB_TYPES, PRIORITIES } from '../data/models';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from 'date-fns';
 import { JobDetailModal } from '../components/JobModals';
+import { StaffDetailModal } from './Staff';
 import './Dashboard.css';
 
 export default function Dashboard({ user }) {
@@ -40,7 +41,14 @@ export default function Dashboard({ user }) {
             if (staffData) {
                 setStaff(staffData.map(s => {
                     staffMap[s.id] = s.nickname;
-                    return { id: s.id, nickname: s.nickname, fullName: s.full_name, role: s.role, isActive: s.is_active };
+                    return { 
+                        id: s.id, 
+                        nickname: s.nickname, 
+                        fullName: s.full_name, 
+                        role: s.role, 
+                        isActive: s.is_active,
+                        additionalInfo: s.additional_info
+                    };
                 }));
             }
 
@@ -156,6 +164,7 @@ export default function Dashboard({ user }) {
             </div>
 
             {selectedJob && <JobDetailModal job={selectedJob} staff={staff} user={user} onClose={() => setSelectedJob(null)} onStatusChange={handleStatusChange} onUpdate={() => fetchData(true)} />}
+            {selectedStaff && <StaffDetailModal staffMember={selectedStaff} jobs={jobs} onClose={() => setSelectedStaff(null)} />}
         </div>
     );
 }
