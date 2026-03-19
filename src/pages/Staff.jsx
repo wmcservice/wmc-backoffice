@@ -480,7 +480,7 @@ export default function Staff() {
     );
 }
 
-function StaffDetailModal({ staffMember, jobs, onClose }) {
+export function StaffDetailModal({ staffMember, jobs, onClose }) {
     const staffJobs = useMemo(() => {
         return jobs.filter(j => j.assignedStaffIds?.includes(staffMember.id));
     }, [staffMember.id, jobs]);

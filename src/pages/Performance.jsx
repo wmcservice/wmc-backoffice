@@ -8,12 +8,14 @@ import { supabase } from '../lib/supabaseClient';
 import { getJobs, getStaff } from '../data/store';
 import { JOB_TYPES } from '../data/models';
 import { getRoleColor, getJobTypeColor } from '../utils/helpers';
+import { StaffDetailModal } from './Staff';
 import './Performance.css';
 
 export default function Performance() {
     const [allJobs, setAllJobs] = useState([]);
     const [allStaff, setAllStaff] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedStaff, setSelectedStaff] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -46,6 +48,8 @@ export default function Performance() {
                 setAllStaff(staffData.map(s => ({
                     id: s.id,
                     nickname: s.nickname,
+                    fullName: s.full_name,
+                    additionalInfo: s.additional_info,
                     role: s.role,
                     isActive: s.is_active
                 })));
@@ -90,6 +94,8 @@ export default function Performance() {
             return {
                 id: s.id,
                 nickname: s.nickname || 'Unknown',
+                fullName: s.fullName,
+                additionalInfo: s.additionalInfo,
                 role: s.role,
                 completed,
                 score: completed * 100 + avgActiveProgress // Simple scoring for ranking
@@ -227,7 +233,7 @@ export default function Performance() {
                                 </thead>
                                 <tbody>
                                     {topPerformers.map((s, i) => (
-                                        <tr key={s.id}>
+                                        <tr key={s.id} onClick={() => setSelectedStaff(s)} style={{ cursor: 'pointer' }}>
                                             <td style={{ textAlign: 'center', fontWeight: 800, color: i < 3 ? 'var(--brand-primary)' : 'var(--text-tertiary)' }}>{i + 1}</td>
                                             <td><strong>{s.nickname}</strong></td>
                                             <td><span className="badge" style={{ backgroundColor: getRoleColor(s.role), color: '#fff', fontSize: '10px' }}>{s.role}</span></td>
@@ -286,6 +292,14 @@ export default function Performance() {
                     </div>
                 </div>
             </div>
+            {/* Selected Staff Modal */}
+            {selectedStaff && (
+                <StaffDetailModal
+                    staffMember={selectedStaff}
+                    jobs={allJobs}
+                    onClose={() => setSelectedStaff(null)}
+                />
+            )}
         </div>
     );
 }
