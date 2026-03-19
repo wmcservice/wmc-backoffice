@@ -57,7 +57,6 @@ export default function Reports({ user }) {
                         notes: j.notes, 
                         fixReason: j.fix_reason,
                         overallProgress: j.overall_progress, 
-                        currentIssues: j.current_issues,
                         defaultCheckIn: j.default_check_in, 
                         defaultCheckOut: j.default_check_out,
                         subTasks: (j.sub_tasks || []).map(st => ({ id: st.id, title: st.title, isCompleted: st.is_completed })),
@@ -274,12 +273,6 @@ export default function Reports({ user }) {
                                                 <div>{job.fixReason}</div>
                                             </div>
                                         )}
-                                        {job.currentIssues && (
-                                            <div className="pj-section pj-warning">
-                                                <h4>ปัญหาติดขัดที่พบหน้างาน</h4>
-                                                <div style={{ whiteSpace: 'pre-line' }}>{job.currentIssues}</div>
-                                            </div>
-                                        )}
                                     </div>
                                     <div className="pj-col">
                                         <div className="pj-section">
@@ -300,7 +293,7 @@ export default function Reports({ user }) {
                                         
                                         {job.progressLogs.length > 0 && (
                                             <div className="pj-section">
-                                                <h4>บันทึกวิวัฒนาการล่าสุด</h4>
+                                                <h4>บันทึกรายงานประจำวัน</h4>
                                                 <ul className="pj-log-list">
                                                     {job.progressLogs.slice(0, 3).map(pl => (
                                                         <li key={pl.id}>

@@ -179,8 +179,6 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
     const [isAdding, setIsAdding] = useState(false);
     const [newLog, setNewLog] = useState('');
     const [logStaffIds, setLogStaffIds] = useState(job.assignedStaffIds || []);
-    const [localIssues, setLocalIssues] = useState(job.currentIssues || '');
-    const [issueSuccess, setIssueSuccess] = useState(false);
     const [addingForDate, setAddingForDate] = useState(null);
 
     const handleDailyAddMember = async (dateStr, staffId) => {
@@ -219,37 +217,9 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
     };
 
     useEffect(() => {
-        setLocalIssues(job.currentIssues || '');
         setLogStaffIds(job.assignedStaffIds || []);
     }, [job.id, job.assignedStaffIds]);
 
-    const handleUpdateIssues = async () => {
-        try {
-            const isClearing = !localIssues.trim();
-            const reporterName = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'Admin';
-            const updatePayload = isClearing
-                ? { current_issues: '', current_issues_date: null, current_issues_by: null }
-                : { current_issues: localIssues.trim(), current_issues_date: new Date().toISOString(), current_issues_by: reporterName };
-            await supabase.from('jobs').update(updatePayload).eq('id', job.id);
-            onUpdate();
-            setIssueSuccess(true);
-            setTimeout(() => setIssueSuccess(false), 3000);
-        } catch (error) {
-            console.error('Error updating issues:', error);
-            alert('เกิดข้อผิดพลาด กรุณาลองอีกครั้ง');
-        }
-    };
-
-    const handleDeleteIssues = async () => {
-        if (!confirm('ต้องการลบปัญหานี้หรือไม่?')) return;
-        try {
-            await supabase.from('jobs').update({ current_issues: '', current_issues_date: null }).eq('id', job.id);
-            setLocalIssues('');
-            onUpdate();
-        } catch (error) {
-            console.error('Error deleting issues:', error);
-        }
-    };
 
     const handleAddLog = async () => {
         if (!newLog.trim()) return;
