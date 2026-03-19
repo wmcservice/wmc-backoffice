@@ -647,4 +647,60 @@
     grid-column: 1 / -1;
 }
 
+/* ── Header Actions ── */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.view-mode-selector {
+    display: flex;
+    background: var(--bg-tertiary);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    gap: 4px;
+}
+
+.view-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.view-btn.active {
+    background: var(--card-bg);
+    color: var(--brand-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ── Scheduler Header & Navigation ── */
+.scheduler-header {
+    background: var(--card-bg);
+    padding: var(--space-4);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-4);
+}
+
+.current-range {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.current-range h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    min-width: 150px;
+    text-align: center;
+}
+
 /* End of Scheduler Styles */
