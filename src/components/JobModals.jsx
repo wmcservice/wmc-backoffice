@@ -226,31 +226,45 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
         const authorName = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'Admin';
         const logDate = new Date().toISOString().split('T')[0];
         try {
-            // Check if any selected staff are missing from today's allocations
-            if (logStaffIds.length > 0) {
-                const { data: existingAllocs } = await supabase
-                    .from('allocations')
-                    .select('staff_id')
-                    .eq('job_id', job.id)
-                    .eq('date', logDate);
-                
-                const existingIds = (existingAllocs || []).map(a => a.staff_id);
-                const missingIds = logStaffIds.filter(id => !existingIds.includes(id));
+            // Check current allocations for today
+            const { data: existingAllocs } = await supabase
+                .from('allocations')
+                .select('staff_id')
+                .eq('job_id', job.id)
+                .eq('date', logDate);
+            
+            const existingIds = (existingAllocs || []).map(a => a.staff_id);
 
-                if (missingIds.length > 0) {
-                    const confirmAdd = window.confirm(
-                        `พบรายชื่อพนักงานในบันทึกที่ยังไม่มีในรายการคนทำงานวันนี้ (${missingIds.length} ท่าน)\nต้องการเพิ่มลงในรายการคนทำงานอัตโนมัติหรือไม่?`
-                    );
-                    if (confirmAdd) {
-                        const newAllocs = missingIds.map(sid => ({
-                            id: crypto.randomUUID(),
-                            job_id: job.id,
-                            staff_id: sid,
-                            date: logDate,
-                            status: 'ได้รับมอบหมาย'
-                        }));
-                        await supabase.from('allocations').insert(newAllocs);
-                    }
+            // 1. Missing in Allocations but present in Log (to ADD)
+            const missingIds = logStaffIds.filter(id => !existingIds.includes(id));
+            if (missingIds.length > 0) {
+                const confirmAdd = window.confirm(
+                    `พบรายชื่อพนักงานในบันทึกที่ยังไม่มีในรายการคนทำงานวันนี้ (${missingIds.length} ท่าน)\nต้องการเพิ่มลงในรายการคนทำงานอัตโนมัติหรือไม่?`
+                );
+                if (confirmAdd) {
+                    const newAllocs = missingIds.map(sid => ({
+                        id: crypto.randomUUID(),
+                        job_id: job.id,
+                        staff_id: sid,
+                        date: logDate,
+                        status: 'ได้รับมอบหมาย'
+                    }));
+                    await supabase.from('allocations').insert(newAllocs);
+                }
+            }
+
+            // 2. Present in Allocations but missing in Log (to REMOVE)
+            // We only prompt if names were actually tagged in the log (to avoid accidental mass deletion on simple notes)
+            const extraIds = existingIds.filter(id => !logStaffIds.includes(id));
+            if (extraIds.length > 0 && logStaffIds.length > 0) {
+                const confirmRemove = window.confirm(
+                    `พบรายชื่อพนักงานในรายการวันนี้ที่ไม่ได้อยู่ในบันทึกรล่าสุด (${extraIds.length} ท่าน)\nต้องการลบรายชื่อเหล่านี้ออกจากรายการคนทำงานวันนี้หรือไม่?`
+                );
+                if (confirmRemove) {
+                    await supabase.from('allocations').delete()
+                        .eq('job_id', job.id)
+                        .eq('date', logDate)
+                        .in('staff_id', extraIds);
                 }
             }
 
