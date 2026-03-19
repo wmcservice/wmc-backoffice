@@ -375,32 +375,7 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
                                 ))}
                             </div>
                         )}
-                        {job.currentIssues && (
-                            <div style={{ padding: '10px 14px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', marginBottom: '10px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                                <AlertCircle size={16} style={{ color: '#d97706', flexShrink: 0, marginTop: '2px' }} />
-                                <div style={{ fontSize: '13px', color: '#92400e', lineHeight: '1.5', flex: 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                                        <strong>ปัญหาปัจจุบัน:</strong>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {job.currentIssuesDate && <span style={{ fontSize: '11px', color: '#b45309' }}>{job.currentIssuesBy && <strong>{job.currentIssuesBy}</strong>}{job.currentIssuesBy && ' • '}อัปเดตเมื่อ: {new Date(job.currentIssuesDate).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
-                                            <button onClick={() => { setLocalIssues(job.currentIssues); document.getElementById('issue-input')?.focus(); }} style={{ border: 'none', background: 'transparent', color: '#b45309', cursor: 'pointer', padding: '2px', display: 'flex' }} title="แก้ไข"><Edit3 size={13} /></button>
-                                            <button onClick={handleDeleteIssues} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'flex' }} title="ลบ"><Trash2 size={13} /></button>
-                                        </div>
-                                    </div>
-                                    {job.currentIssues}
-                                </div>
-                            </div>
-                        )}
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <input id="issue-input" className="input" placeholder="ระบุปัญหาที่พบ (ถ้ามี)..." value={localIssues} onChange={e => setLocalIssues(e.target.value)} style={{ flex: 1 }} />
-                            <button className="btn btn-secondary btn-sm" onClick={handleUpdateIssues}>อัปเดตปัญหา</button>
                         </div>
-                        {issueSuccess && (
-                            <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '12px', fontWeight: 600 }}>
-                                <CheckCircle2 size={14} /> อัปเดตปัญหาสำเร็จ!
-                            </div>
-                        )}
-                    </div>
 
                     {job.status === 'ต้องแก้ไข' && (
                         <div className="detail-section" style={{ borderLeft: '4px solid #ef4444', paddingLeft: '16px' }}>
