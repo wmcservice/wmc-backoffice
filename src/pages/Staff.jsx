@@ -6,6 +6,7 @@ import { createStaff, STAFF_ROLES, STAFF_SKILLS } from '../data/models';
 import { calculateOvertime, calculateDailyPay } from '../utils/overtime';
 import { statusToKey, getRoleColor, formatDate } from '../utils/helpers';
 import { read, utils, writeFile } from 'xlsx';
+import { JobDetailModal } from '../components/JobModals';
 import './Staff.css';
 
 export default function Staff() {
@@ -16,6 +17,7 @@ export default function Staff() {
     const [showModal, setShowModal] = useState(false);
     const [editingStaff, setEditingStaff] = useState(null);
     const [selectedStaff, setSelectedStaff] = useState(null);
+    const [selectedJob, setSelectedJob] = useState(null);
     const [jobs, setJobs] = useState([]);
 
     // Multi-select state
@@ -465,6 +467,16 @@ export default function Staff() {
                     staffMember={selectedStaff}
                     jobs={jobs}
                     onClose={() => setSelectedStaff(null)}
+                    onJobClick={(j) => setSelectedJob(j)}
+                />
+            )}
+
+            {selectedJob && (
+                <JobDetailModal
+                    job={selectedJob}
+                    staff={staffList}
+                    onClose={() => setSelectedJob(null)}
+                    onUpdate={() => fetchData()}
                 />
             )}
 
