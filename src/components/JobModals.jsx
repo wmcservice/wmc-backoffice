@@ -494,7 +494,7 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
                     </div>
 
                     <div className="detail-section">
-                        <h4>บันทึกความคืบหน้า (โดย: {user?.user_metadata?.nickname || user?.email?.split('@')[0]})</h4>
+                        <h4>บันทึกความคืบหน้าประจำวัน (โดย: {user?.user_metadata?.nickname || user?.email?.split('@')[0]})</h4>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
                             {staff.map(s => (
                                 <button
