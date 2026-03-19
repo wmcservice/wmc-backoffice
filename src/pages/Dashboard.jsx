@@ -164,7 +164,7 @@ export default function Dashboard({ user }) {
             </div>
 
             {selectedJob && <JobDetailModal job={selectedJob} staff={staff} user={user} onClose={() => setSelectedJob(null)} onStatusChange={handleStatusChange} onUpdate={() => fetchData(true)} />}
-            {selectedStaff && <StaffDetailModal staffMember={selectedStaff} jobs={jobs} onClose={() => setSelectedStaff(null)} />}
+            {selectedStaff && <StaffDetailModal staffMember={selectedStaff} jobs={jobs} onClose={() => setSelectedStaff(null)} onJobClick={(job) => setSelectedJob(job)} />}
         </div>
     );
 }

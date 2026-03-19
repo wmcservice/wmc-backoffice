@@ -480,7 +480,7 @@ export default function Staff() {
     );
 }
 
-export function StaffDetailModal({ staffMember, jobs, onClose }) {
+export function StaffDetailModal({ staffMember, jobs, onClose, onJobClick }) {
     const staffJobs = useMemo(() => {
         return jobs.filter(j => j.assignedStaffIds?.includes(staffMember.id));
     }, [staffMember.id, jobs]);
@@ -532,11 +532,16 @@ export function StaffDetailModal({ staffMember, jobs, onClose }) {
                                 </thead>
                                 <tbody>
                                     {staffJobs.map(j => (
-                                        <tr key={j.id}>
-                                            <td style={{ fontWeight: 600 }}>{j.qtNumber || '-'}</td>
-                                            <td>{j.projectName}</td>
-                                            <td>{j.clientName}</td>
-                                            <td style={{ fontSize: '12px' }}>{formatDate(j.startDate)} → {formatDate(j.endDate)}</td>
+                                        <tr 
+                                            key={j.id} 
+                                            onClick={() => onJobClick && onJobClick(j)}
+                                            style={{ cursor: onJobClick ? 'pointer' : 'default' }}
+                                            className="clickable-row"
+                                        >
+                                            <td style={{ fontWeight: 600 }}>{(j.qtNumber || j.qt_number) || '-'}</td>
+                                            <td>{j.projectName || j.project_name}</td>
+                                            <td>{j.clientName || j.client_name}</td>
+                                            <td style={{ fontSize: '12px' }}>{formatDate(j.startDate || j.start_date)} → {formatDate(j.endDate || j.end_date)}</td>
                                             <td>
                                                 <span className={`badge badge-${statusToKey(j.status)}`}>
                                                     {j.status}

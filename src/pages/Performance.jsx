@@ -9,6 +9,7 @@ import { getJobs, getStaff } from '../data/store';
 import { JOB_TYPES } from '../data/models';
 import { getRoleColor, getJobTypeColor } from '../utils/helpers';
 import { StaffDetailModal } from './Staff';
+import { JobDetailModal } from '../components/JobModals';
 import './Performance.css';
 
 export default function Performance() {
@@ -16,6 +17,7 @@ export default function Performance() {
     const [allStaff, setAllStaff] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedStaff, setSelectedStaff] = useState(null);
+    const [selectedJob, setSelectedJob] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -35,6 +37,11 @@ export default function Performance() {
                 const formatted = jobsData.map(j => ({
                     ...j,
                     id: j.id,
+                    qtNumber: j.qt_number,
+                    projectName: j.project_name,
+                    clientName: j.client_name,
+                    startDate: j.start_date,
+                    endDate: j.end_date,
                     jobType: j.job_type,
                     status: j.status,
                     overallProgress: j.overall_progress,
@@ -298,6 +305,16 @@ export default function Performance() {
                     staffMember={selectedStaff}
                     jobs={allJobs}
                     onClose={() => setSelectedStaff(null)}
+                    onJobClick={(job) => setSelectedJob(job)}
+                />
+            )}
+
+            {selectedJob && (
+                <JobDetailModal
+                    job={selectedJob}
+                    staff={allStaff}
+                    onClose={() => setSelectedJob(null)}
+                    onUpdate={() => fetchData()}
                 />
             )}
         </div>
