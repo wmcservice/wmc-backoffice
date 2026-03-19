@@ -224,8 +224,37 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
     const handleAddLog = async () => {
         if (!newLog.trim()) return;
         const authorName = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'Admin';
+        const logDate = new Date().toISOString().split('T')[0];
         try {
-            const { data, error } = await supabase.from('progress_logs').insert([{ id: crypto.randomUUID(), job_id: job.id, log_date: new Date().toISOString().split('T')[0], text: newLog, author: authorName }]).select();
+            // Check if any selected staff are missing from today's allocations
+            if (logStaffIds.length > 0) {
+                const { data: existingAllocs } = await supabase
+                    .from('allocations')
+                    .select('staff_id')
+                    .eq('job_id', job.id)
+                    .eq('date', logDate);
+                
+                const existingIds = (existingAllocs || []).map(a => a.staff_id);
+                const missingIds = logStaffIds.filter(id => !existingIds.includes(id));
+
+                if (missingIds.length > 0) {
+                    const confirmAdd = window.confirm(
+                        `พบรายชื่อพนักงานในบันทึกที่ยังไม่มีในรายการคนทำงานวันนี้ (${missingIds.length} ท่าน)\nต้องการเพิ่มลงในรายการคนทำงานอัตโนมัติหรือไม่?`
+                    );
+                    if (confirmAdd) {
+                        const newAllocs = missingIds.map(sid => ({
+                            id: crypto.randomUUID(),
+                            job_id: job.id,
+                            staff_id: sid,
+                            date: logDate,
+                            status: 'ได้รับมอบหมาย'
+                        }));
+                        await supabase.from('allocations').insert(newAllocs);
+                    }
+                }
+            }
+
+            const { data, error } = await supabase.from('progress_logs').insert([{ id: crypto.randomUUID(), job_id: job.id, log_date: logDate, text: newLog, author: authorName }]).select();
             if (error) throw error;
             const logId = data[0].id;
             if (logStaffIds.length > 0) {
