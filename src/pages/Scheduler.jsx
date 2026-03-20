@@ -167,7 +167,13 @@ export default function Scheduler({ user }) {
                 </div>
                 <div className="scheduler-grid">
                     {currentRangeDates.map(dateStr => {
-                        const dayAllocs = allocations.filter(a => a.date === dateStr);
+                        // Only include allocations that fall within the job's current date range
+                        const dayAllocs = allocations.filter(a => {
+                            if (a.date !== dateStr) return false;
+                            const job = jobs.find(j => j.id === a.job_id);
+                            if (!job) return false;
+                            return dateStr >= job.start_date && dateStr <= job.end_date;
+                        });
                         const allocJobIds = [...new Set(dayAllocs.map(a => a.job_id))];
 
                         // Also include jobs whose date range covers this day (even without allocations)
