@@ -195,14 +195,12 @@
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
-        width: var(--sidebar-width);
+        width: var(--sidebar-width) !important;
+        z-index: 200;
+        transition: transform var(--transition-normal);
     }
 
     .sidebar.mobile-open {
         transform: translateX(0);
-    }
-
-    .sidebar.collapsed {
-        width: var(--sidebar-width);
     }
 }

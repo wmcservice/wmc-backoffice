@@ -23,12 +23,17 @@ const navItems = [
     { path: '/settings', icon: Settings, label: 'ตั้งค่า' },
 ];
 
-export default function Sidebar({ collapsed, onToggle, user }) {
+export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, user }) {
     const location = useLocation();
     const nickname = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'User';
 
+    const handleNavClick = () => {
+        // Auto-close sidebar when navigating on mobile
+        if (onMobileClose) onMobileClose();
+    };
+
     return (
-        <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+        <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
             <div className="sidebar-brand">
                 <div className="brand-icon">
                     <HardHat size={24} />
@@ -51,6 +56,7 @@ export default function Sidebar({ collapsed, onToggle, user }) {
                         }
                         end={item.path === '/'}
                         title={collapsed ? item.label : undefined}
+                        onClick={handleNavClick}
                     >
                         <item.icon size={20} />
                         {!collapsed && <span>{item.label}</span>}

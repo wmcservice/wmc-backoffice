@@ -52,9 +52,15 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="app-layout">
+        {/* Mobile overlay — tap to close sidebar */}
+        {mobileSidebarOpen && (
+          <div className="sidebar-overlay" onClick={() => setMobileSidebarOpen(false)} />
+        )}
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={toggleSidebar}
+          mobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
           user={session.user}
         />
         <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>

@@ -278,6 +278,7 @@
 @media (max-width: 768px) {
     .topbar {
         left: 0 !important;
+        padding: 0 var(--space-3);
     }
 
     .mobile-menu-btn {
@@ -285,6 +286,21 @@
     }
 
     .search-box {
-        max-width: 200px;
+        max-width: 160px;
+    }
+
+    /* Hide text name to save space */
+    .user-info {
+        display: none;
+    }
+
+    /* Keep notifications dropdown within screen */
+    .notifications-dropdown {
+        width: min(320px, calc(100vw - 24px));
+        right: -8px;
+    }
+
+    .topbar-divider {
+        display: none;
     }
 }
