@@ -187,10 +187,10 @@ export default function Staff() {
                     .eq('id', member.id);
                 if (error) throw error;
             } else {
-                // Insert — do NOT send id, let Supabase generate it
+                // Insert — include client-generated id since table has no default
                 const { error } = await supabase
                     .from('staff')
-                    .insert([dbData]);
+                    .insert([{ id: member.id, ...dbData }]);
                 if (error) throw error;
             }
 
