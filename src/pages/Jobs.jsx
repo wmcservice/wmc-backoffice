@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Search, Filter, Trash2, Edit3, Eye, ChevronDown, AlertCircle, CheckCircle2, Clock, Loader, Download, Upload, Loader2, AlertTriangle, FileText, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Edit3, Eye, ChevronDown, AlertCircle, CheckCircle2, Clock, Loader, Download, Upload, Loader2, AlertTriangle, FileText, ArrowUpDown, Copy } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { getJobs, saveJob, deleteJob, getStaff, getAllocationsByJob, importJobs, exportAllData } from '../data/store';
 import { createJob, JOB_STATUSES, JOB_TYPES, PRIORITIES } from '../data/models';
@@ -147,6 +147,25 @@ export default function Jobs({ user }) {
         }
     };
 
+    const handleDuplicate = (job) => {
+        const duplicated = {
+            ...job,
+            id: crypto.randomUUID(),
+            qtNumber: '',
+            status: 'รอคิว',
+            overallProgress: 0,
+            currentIssues: '',
+            progressLogs: [],
+            assignedStaffIds: [...(job.assignedStaffIds || [])],
+            subTasks: (job.subTasks || []).map(st => ({ ...st, id: crypto.randomUUID(), isCompleted: false })),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        setShowDetailModal(false);
+        setEditingJob(duplicated);
+        setShowModal(true);
+    };
+
     const uniqueClients = useMemo(() => [...new Set(jobs.map(j => j.clientName).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th')), [jobs]);
     const filtered = useMemo(() => {
         let result = jobs.filter(j => (!search || (j.projectName || '').toLowerCase().includes(search.toLowerCase()) || (j.clientName || '').toLowerCase().includes(search.toLowerCase()) || (j.qtNumber || '').toLowerCase().includes(search.toLowerCase())) && (statusFilter === 'ทุกสถานะ' || j.status === statusFilter) && (typeFilter === 'ทุกประเภท' || j.jobType === typeFilter));
@@ -204,12 +223,16 @@ export default function Jobs({ user }) {
                         <td><span className={`job-type-badge type-${jobTypeToKey(job.jobType)}`}>{job.jobType}</span></td>
                         <td>{job.overallProgress}%</td>
                         <td><span className={`badge badge-${statusToKey(job.status)}`}>{job.status}</span></td>
-                        <td><div className="table-actions" style={{ justifyContent: 'flex-end' }}><button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); setEditingJob(job); setShowModal(true); }}><Edit3 size={16} /></button><button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); if (confirm('ลบ?')) supabase.from('jobs').delete().eq('id', job.id).then(() => fetchData(true)); }}><Trash2 size={16} /></button></div></td>
+                        <td><div className="table-actions" style={{ justifyContent: 'flex-end' }}>
+                            <button className="btn btn-ghost btn-icon btn-sm" title="สร้างงานซ้ำ" onClick={(e) => { e.stopPropagation(); handleDuplicate(job); }}><Copy size={16} /></button>
+                            <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); setEditingJob(job); setShowModal(true); }}><Edit3 size={16} /></button>
+                            <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); if (confirm('ลบ?')) supabase.from('jobs').delete().eq('id', job.id).then(() => fetchData(true)); }}><Trash2 size={16} /></button>
+                        </div></td>
                     </tr>
                 ))}</tbody></table></div>
             </div>
             {showModal && <JobModal job={editingJob} staff={staff} clientSuggestions={uniqueClients} onSave={handleSave} onClose={() => { setShowModal(false); setEditingJob(null); }} />}
-            {showDetailModal && detailJob && <JobDetailModal job={detailJob} staff={staff} user={user} onClose={() => setShowDetailModal(false)} onUpdate={() => fetchData(true)} onEdit={() => { setEditingJob(detailJob); setShowModal(true); setShowDetailModal(false); }} />}
+            {showDetailModal && detailJob && <JobDetailModal job={detailJob} staff={staff} user={user} onClose={() => setShowDetailModal(false)} onUpdate={() => fetchData(true)} onEdit={() => { setEditingJob(detailJob); setShowModal(true); setShowDetailModal(false); }} onDuplicate={() => handleDuplicate(detailJob)} />}
         </div>
     );
 }
