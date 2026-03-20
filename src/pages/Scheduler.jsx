@@ -119,6 +119,26 @@ export default function Scheduler({ user }) {
         } catch (err) { console.error(err); alert('Save Failed'); }
     };
 
+    const handleDuplicate = (job) => {
+        // Clone job with a fresh id, reset progress & status
+        const duplicated = {
+            ...job,
+            id: crypto.randomUUID(),
+            qtNumber: '',           // clear QT number — usually unique per job
+            status: 'รอคิว',
+            overallProgress: 0,
+            currentIssues: '',
+            progressLogs: [],
+            assignedStaffIds: [...(job.assignedStaffIds || [])], // keep same team
+            subTasks: (job.subTasks || []).map(st => ({ ...st, id: crypto.randomUUID(), isCompleted: false })),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        setSelectedJob(null);    // close detail modal
+        setEditingJob(duplicated); // open JobModal with duplicated data
+        setShowJobModal(true);
+    };
+
 
     const weekDates = useMemo(() => getWeekDates(addDays(new Date(), weekOffset * 7)), [weekOffset]);
     const monthDates = useMemo(() => getMonthDates(addMonths(new Date(), monthOffset)), [monthOffset]);
@@ -179,7 +199,7 @@ export default function Scheduler({ user }) {
                     })}
                 </div>
             </div>
-            {selectedJob && <JobDetailModal job={selectedJob} staff={staff} user={user} onClose={() => setSelectedJob(null)} onEdit={() => { setEditingJob(selectedJob); setShowJobModal(true); setSelectedJob(null); }} onUpdate={() => fetchData(true)} />}
+            {selectedJob && <JobDetailModal job={selectedJob} staff={staff} user={user} onClose={() => setSelectedJob(null)} onEdit={() => { setEditingJob(selectedJob); setShowJobModal(true); setSelectedJob(null); }} onDuplicate={() => handleDuplicate(selectedJob)} onUpdate={() => fetchData(true)} />}
             {(showJobModal || editingJob) && <JobModal job={editingJob} staff={staff} clientSuggestions={uniqueClients} onSave={handleSaveJob} onClose={() => { setShowJobModal(false); setEditingJob(null); }} />}
         </div>
     );

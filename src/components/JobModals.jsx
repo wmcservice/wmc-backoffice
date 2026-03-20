@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit3, Trash2, X, Link, FileText, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Link, FileText, AlertCircle, CheckCircle2, Clock, Copy } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { createJob, JOB_STATUSES, JOB_TYPES, PRIORITIES } from '../data/models';
 import { formatDate, getStatusColor, getPriorityColor, statusToKey, jobTypeToKey } from '../utils/helpers';
@@ -174,7 +174,7 @@ export function JobModal({ job, staff, clientSuggestions = [], onSave, onClose }
     );
 }
 
-export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusChange, onEdit }) {
+export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusChange, onEdit, onDuplicate }) {
     const statusClass = statusToKey(job.status);
     const [isAdding, setIsAdding] = useState(false);
     const [newLog, setNewLog] = useState('');
@@ -330,7 +330,12 @@ export function JobDetailModal({ job, staff, user, onClose, onUpdate, onStatusCh
                         <span className="subtitle">{job.qtNumber} • {job.clientName}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        {onEdit && <button className="btn btn-ghost btn-icon" onClick={onEdit}><Edit3 size={18} /></button>}
+                        {onDuplicate && (
+                            <button className="btn btn-ghost btn-icon" onClick={onDuplicate} title="สร้างงานซ้ำ">
+                                <Copy size={18} />
+                            </button>
+                        )}
+                        {onEdit && <button className="btn btn-ghost btn-icon" onClick={onEdit} title="แก้ไขงาน"><Edit3 size={18} /></button>}
                         <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
                     </div>
                 </div>
