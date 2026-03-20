@@ -81,10 +81,18 @@ export default function Scheduler({ user }) {
         try {
             const dbData = { id: job.id, qt_number: job.qtNumber, project_name: job.projectName, client_name: job.clientName, job_type: job.jobType, status: job.status, start_date: job.startDate, end_date: job.endDate, default_check_in: job.defaultCheckIn, default_check_out: job.defaultCheckOut, priority: job.priority, notes: job.notes, created_by: job.createdBy, overall_progress: job.overallProgress, current_issues: job.currentIssues, updated_at: new Date().toISOString() };
             let jobId = job.id;
-            if (job.id && jobs.some(j => j.id === job.id)) await supabase.from('jobs').update(dbData).eq('id', job.id);
+            const isUpdate = job.id && jobs.some(j => j.id === job.id);
+            if (isUpdate) await supabase.from('jobs').update(dbData).eq('id', job.id);
             else { const { data } = await supabase.from('jobs').insert([dbData]).select(); jobId = data[0].id; }
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
             if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ id: crypto.randomUUID(), job_id: jobId, title: st.title, is_completed: st.isCompleted })));
+
+            // ── Clean up allocations outside the new date range ──
+            if (isUpdate && job.startDate && job.endDate) {
+                await supabase.from('allocations').delete().eq('job_id', jobId).lt('date', job.startDate);
+                await supabase.from('allocations').delete().eq('job_id', jobId).gt('date', job.endDate);
+            }
+
             if (job.assignedStaffIds?.length > 0) {
                 const dates = [];
                 let curr = new Date(job.startDate + 'T12:00:00');
@@ -108,8 +116,9 @@ export default function Scheduler({ user }) {
                 if (allocInserts.length > 0) await supabase.from('allocations').insert(allocInserts);
             }
             await fetchData(); setShowJobModal(false); setEditingJob(null);
-        } catch (err) { alert('Save Failed'); }
+        } catch (err) { console.error(err); alert('Save Failed'); }
     };
+
 
     const weekDates = useMemo(() => getWeekDates(addDays(new Date(), weekOffset * 7)), [weekOffset]);
     const monthDates = useMemo(() => getMonthDates(addMonths(new Date(), monthOffset)), [monthOffset]);
