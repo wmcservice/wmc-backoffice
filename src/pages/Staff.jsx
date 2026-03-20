@@ -187,7 +187,7 @@ export default function Staff() {
                     .eq('id', member.id);
                 if (error) throw error;
             } else {
-                // Insert
+                // Insert — do NOT send id, let Supabase generate it
                 const { error } = await supabase
                     .from('staff')
                     .insert([dbData]);
@@ -199,9 +199,10 @@ export default function Staff() {
             setEditingStaff(null);
         } catch (error) {
             console.error('Error saving staff:', error);
-            alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+            alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล\n${error?.message || JSON.stringify(error)}`);
         }
     };
+
 
     const handleDelete = async (id) => {
         if (confirm('ยืนยันการลบพนักงานคนนี้?')) {

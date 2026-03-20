@@ -43,7 +43,7 @@ export const createStaff = (overrides = {}) => ({
   fingerprintId: '',
   fullName: '',
   nickname: '',
-  role: 'พนักงาน',
+  role: 'ช่างหน้างาน',
   primarySkill: 'ติดตั้ง',
   isActive: true,
   phone: '',
