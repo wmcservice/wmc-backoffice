@@ -151,25 +151,37 @@ export default function Jobs({ user }) {
                 // Update the temp entry with real server id
                 setJobs(prev => prev.map(j => j.id === job.id ? { ...optimisticJob, id: jobId } : j));
             }
-            if (job.assignedStaffIds?.length > 0) {
-                const dates = [];
-                let curr = new Date(job.startDate + 'T12:00:00');
-                const end = new Date(job.endDate + 'T12:00:00');
-                while (curr <= end) {
-                    dates.push(curr.toISOString().split('T')[0]);
-                    curr.setDate(curr.getDate() + 1);
-                }
-                const { data: existing } = await supabase.from('allocations').select('staff_id, date').eq('job_id', jobId).in('date', dates);
+            // ── Sync staff allocations: delete removed, insert added ──────
+            const newStaffIds = job.assignedStaffIds || [];
+            const dates = [];
+            let curr = new Date((job.startDate || new Date().toISOString().split('T')[0]) + 'T12:00:00');
+            const end = new Date((job.endDate || new Date().toISOString().split('T')[0]) + 'T12:00:00');
+            while (curr <= end) {
+                dates.push(curr.toISOString().split('T')[0]);
+                curr.setDate(curr.getDate() + 1);
+            }
+
+            // 1. Get all existing allocations for this job in the date range
+            const { data: existing } = await supabase.from('allocations').select('id, staff_id, date').eq('job_id', jobId).in('date', dates);
+            const existingAllocs = existing || [];
+
+            // 2. Delete allocations for staff no longer in the list
+            const toDelete = existingAllocs.filter(a => !newStaffIds.includes(a.staff_id)).map(a => a.id);
+            if (toDelete.length > 0) await supabase.from('allocations').delete().in('id', toDelete);
+
+            // 3. Insert allocations for newly added staff (skip if already exists)
+            if (newStaffIds.length > 0) {
                 const allocInserts = [];
                 dates.forEach(dStr => {
-                    const existingOnDate = (existing || []).filter(a => a.date === dStr).map(a => a.staff_id);
-                    const newToAlloc = job.assignedStaffIds.filter(sid => !existingOnDate.includes(sid));
-                    newToAlloc.forEach(sid => {
+                    const existingOnDate = existingAllocs.filter(a => a.date === dStr).map(a => a.staff_id);
+                    newStaffIds.filter(sid => !existingOnDate.includes(sid)).forEach(sid => {
                         allocInserts.push({ id: crypto.randomUUID(), job_id: jobId, staff_id: sid, date: dStr, status: 'ได้รับมอบหมาย' });
                     });
                 });
                 if (allocInserts.length > 0) await supabase.from('allocations').insert(allocInserts);
             }
+            // ─────────────────────────────────────────────────────────────
+
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
             if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ id: crypto.randomUUID(), job_id: jobId, title: st.title, is_completed: st.isCompleted })));
         } catch (error) {

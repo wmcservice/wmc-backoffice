@@ -21,6 +21,19 @@ export default function Performance() {
 
     useEffect(() => {
         fetchData();
+
+        // ── Realtime: auto-refresh when any device makes changes ──
+        const channel = supabase
+            .channel('performance-page-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, fetchData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'allocations' }, fetchData)
+            .subscribe();
+
+        // ── visibilitychange: re-fetch when mobile user switches back to app ──
+        const handleVisibility = () => { if (document.visibilityState === 'visible') fetchData(); };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => { supabase.removeChannel(channel); document.removeEventListener('visibilitychange', handleVisibility); };
     }, []);
 
     const fetchData = async () => {

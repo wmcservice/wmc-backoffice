@@ -121,25 +121,38 @@ export default function Scheduler({ user }) {
                 await supabase.from('allocations').delete().eq('job_id', jobId).gt('date', job.endDate);
             }
 
-            if (job.assignedStaffIds?.length > 0) {
+            // ── Sync staff allocations: delete removed, insert added ──────
+            const newStaffIds = job.assignedStaffIds || [];
+            if (job.startDate && job.endDate) {
                 const dates = [];
                 let curr = new Date(job.startDate + 'T12:00:00');
-                const end = new Date(job.endDate + 'T12:00:00');
-                while (curr <= end) {
+                const endD = new Date(job.endDate + 'T12:00:00');
+                while (curr <= endD) {
                     dates.push(curr.toISOString().split('T')[0]);
                     curr.setDate(curr.getDate() + 1);
                 }
-                const { data: existing } = await supabase.from('allocations').select('staff_id, date').eq('job_id', jobId).in('date', dates);
-                const allocInserts = [];
-                dates.forEach(dStr => {
-                    const existingOnDate = (existing || []).filter(a => a.date === dStr).map(a => a.staff_id);
-                    const newToAlloc = job.assignedStaffIds.filter(sid => !existingOnDate.includes(sid));
-                    newToAlloc.forEach(sid => {
-                        allocInserts.push({ id: crypto.randomUUID(), job_id: jobId, staff_id: sid, date: dStr, status: 'ได้รับมอบหมาย' });
+
+                // 1. Get existing allocations in date range
+                const { data: existing } = await supabase.from('allocations').select('id, staff_id, date').eq('job_id', jobId).in('date', dates);
+                const existingAllocs = existing || [];
+
+                // 2. Delete allocations for removed staff
+                const toDelete = existingAllocs.filter(a => !newStaffIds.includes(a.staff_id)).map(a => a.id);
+                if (toDelete.length > 0) await supabase.from('allocations').delete().in('id', toDelete);
+
+                // 3. Insert allocations for newly added staff
+                if (newStaffIds.length > 0) {
+                    const allocInserts = [];
+                    dates.forEach(dStr => {
+                        const existingOnDate = existingAllocs.filter(a => a.date === dStr).map(a => a.staff_id);
+                        newStaffIds.filter(sid => !existingOnDate.includes(sid)).forEach(sid => {
+                            allocInserts.push({ id: crypto.randomUUID(), job_id: jobId, staff_id: sid, date: dStr, status: 'ได้รับมอบหมาย' });
+                        });
                     });
-                });
-                if (allocInserts.length > 0) await supabase.from('allocations').insert(allocInserts);
+                    if (allocInserts.length > 0) await supabase.from('allocations').insert(allocInserts);
+                }
             }
+            // ─────────────────────────────────────────────────────────────
         } catch (err) {
             console.error(err);
             alert('Save Failed');
