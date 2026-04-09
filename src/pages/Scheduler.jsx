@@ -30,7 +30,11 @@ export default function Scheduler({ user }) {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'allocations' }, () => fetchData(true))
             .subscribe();
 
-        return () => supabase.removeChannel(channel);
+        // ── visibilitychange: re-fetch when mobile user switches back to app ──
+        const handleVisibility = () => { if (document.visibilityState === 'visible') fetchData(true); };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => { supabase.removeChannel(channel); document.removeEventListener('visibilitychange', handleVisibility); };
     }, []);
 
     useEffect(() => {

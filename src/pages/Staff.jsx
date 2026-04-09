@@ -36,7 +36,11 @@ export default function Staff() {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'allocations' }, () => fetchData())
             .subscribe();
 
-        return () => supabase.removeChannel(channel);
+        // ── visibilitychange: re-fetch when mobile user switches back to app ──
+        const handleVisibility = () => { if (document.visibilityState === 'visible') fetchData(); };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => { supabase.removeChannel(channel); document.removeEventListener('visibilitychange', handleVisibility); };
     }, []);
 
     const fetchData = async () => {
