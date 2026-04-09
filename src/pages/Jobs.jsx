@@ -81,30 +81,50 @@ export default function Jobs({ user }) {
         } catch (error) { console.error(error); } finally { if (!isSilent) setLoading(false); }
     };
 
+    const buildJobObj = (job, jobId) => ({
+        ...job,
+        id: jobId || job.id,
+        updatedAt: new Date().toISOString(),
+    });
+
     const handleSave = async (job) => {
+        const isUpdate = !!(editingJob && job.id);
+        const updatedAt = new Date().toISOString();
+        const dbData = {
+            id: job.id,
+            qt_number: job.qtNumber || '',
+            project_name: job.projectName || '',
+            client_name: job.clientName || '',
+            job_type: job.jobType || 'ติดตั้ง',
+            status: job.status || 'รอคิว',
+            start_date: job.startDate || new Date().toISOString().split('T')[0],
+            end_date: job.endDate || new Date().toISOString().split('T')[0],
+            default_check_in: job.defaultCheckIn || '09:00',
+            default_check_out: job.defaultCheckOut || '18:00',
+            priority: job.priority || 'ปกติ',
+            notes: job.notes || '',
+            fix_reason: job.fixReason || '',
+            created_by: job.createdBy || '',
+            overall_progress: job.overallProgress || 0,
+            current_issues: job.currentIssues || '',
+            updated_at: updatedAt,
+            created_at: job.createdAt || updatedAt
+        };
+
+        // ── Optimistic update ──────────────────────────
+        const optimisticJob = { ...job, updatedAt };
+        if (isUpdate) {
+            setJobs(prev => prev.map(j => j.id === job.id ? optimisticJob : j));
+        } else {
+            setJobs(prev => [optimisticJob, ...prev]);
+        }
+        setShowModal(false);
+        setEditingJob(null);
+        // ──────────────────────────────────────────────
+
         try {
-            const dbData = {
-                id: job.id,
-                qt_number: job.qtNumber || '',
-                project_name: job.projectName || '',
-                client_name: job.clientName || '',
-                job_type: job.jobType || 'ติดตั้ง',
-                status: job.status || 'รอคิว',
-                start_date: job.startDate || new Date().toISOString().split('T')[0],
-                end_date: job.endDate || new Date().toISOString().split('T')[0],
-                default_check_in: job.defaultCheckIn || '09:00',
-                default_check_out: job.defaultCheckOut || '18:00',
-                priority: job.priority || 'ปกติ',
-                notes: job.notes || '',
-                fix_reason: job.fixReason || '',
-                created_by: job.createdBy || '',
-                overall_progress: job.overallProgress || 0,
-                current_issues: job.currentIssues || '',
-                updated_at: new Date().toISOString(),
-                created_at: job.createdAt || new Date().toISOString()
-            };
             let jobId = job.id;
-            if (editingJob && job.id) {
+            if (isUpdate) {
                 const { error } = await supabase.from('jobs').update(dbData).eq('id', job.id);
                 if (error) throw error;
             } else {
@@ -112,6 +132,8 @@ export default function Jobs({ user }) {
                 if (error) throw error;
                 if (!data || data.length === 0) throw new Error('No data returned from insert');
                 jobId = data[0].id;
+                // Update the temp entry with real server id
+                setJobs(prev => prev.map(j => j.id === job.id ? { ...optimisticJob, id: jobId } : j));
             }
             if (job.assignedStaffIds?.length > 0) {
                 const dates = [];
@@ -121,9 +143,7 @@ export default function Jobs({ user }) {
                     dates.push(curr.toISOString().split('T')[0]);
                     curr.setDate(curr.getDate() + 1);
                 }
-                
                 const { data: existing } = await supabase.from('allocations').select('staff_id, date').eq('job_id', jobId).in('date', dates);
-                
                 const allocInserts = [];
                 dates.forEach(dStr => {
                     const existingOnDate = (existing || []).filter(a => a.date === dStr).map(a => a.staff_id);
@@ -132,18 +152,15 @@ export default function Jobs({ user }) {
                         allocInserts.push({ id: crypto.randomUUID(), job_id: jobId, staff_id: sid, date: dStr, status: 'ได้รับมอบหมาย' });
                     });
                 });
-
                 if (allocInserts.length > 0) await supabase.from('allocations').insert(allocInserts);
             }
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
             if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ id: crypto.randomUUID(), job_id: jobId, title: st.title, is_completed: st.isCompleted })));
-
-            await fetchData(true);
-            setShowModal(false);
-            setEditingJob(null);
         } catch (error) {
             console.error('Save error details:', error);
             alert(`บันทึกไม่สำเร็จ: ${error.message || 'Unknown error'}`);
+            // Revert optimistic update on failure
+            fetchData(true);
         }
     };
 
@@ -226,7 +243,7 @@ export default function Jobs({ user }) {
                         <td><div className="table-actions" style={{ justifyContent: 'flex-end' }}>
                             <button className="btn btn-ghost btn-icon btn-sm" title="สร้างงานซ้ำ" onClick={(e) => { e.stopPropagation(); handleDuplicate(job); }}><Copy size={16} /></button>
                             <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); setEditingJob(job); setShowModal(true); }}><Edit3 size={16} /></button>
-                            <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); if (confirm('ลบ?')) supabase.from('jobs').delete().eq('id', job.id).then(() => fetchData(true)); }}><Trash2 size={16} /></button>
+                            <button className="btn btn-ghost btn-icon btn-sm" onClick={(e) => { e.stopPropagation(); if (confirm('ลบ?')) { setJobs(prev => prev.filter(j => j.id !== job.id)); supabase.from('jobs').delete().eq('id', job.id).then(({ error }) => { if (error) { alert('ลบไม่สำเร็จ'); fetchData(true); } }); } }}><Trash2 size={16} /></button>
                         </div></td>
                     </tr>
                 ))}</tbody></table></div>

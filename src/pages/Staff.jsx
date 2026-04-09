@@ -140,21 +140,17 @@ export default function Staff() {
     const handleBulkDelete = async () => {
         if (!selectedIds.length) return;
         if (confirm(`คุณต้องการลบพนักงานที่เลือกทั้ง ${selectedIds.length} คนใช่หรือไม่?`)) {
+            const toDelete = [...selectedIds];
+            setStaffList(prev => prev.filter(s => !toDelete.includes(s.id))); // Optimistic
+            setSelectedIds([]);
             try {
-                setLoading(true);
-                const { error } = await supabase
-                    .from('staff')
-                    .delete()
-                    .in('id', selectedIds);
-
+                const { error } = await supabase.from('staff').delete().in('id', toDelete);
                 if (error) throw error;
                 alert('ลบข้อมูลพนักงานเรียบร้อยแล้ว');
-                fetchData();
             } catch (error) {
                 console.error('Bulk delete error:', error);
                 alert('เกิดข้อผิดพลาดในการลบข้อมูล');
-            } finally {
-                setLoading(false);
+                fetchData(); // Revert on error
             }
         }
     };
@@ -167,55 +163,53 @@ export default function Staff() {
     };
 
     const handleSave = async (member) => {
-        try {
-            const dbData = {
-                fingerprint_id: member.fingerprintId,
-                full_name: member.fullName,
-                nickname: member.nickname,
-                role: member.role,
-                primary_skill: member.primarySkill,
-                is_active: member.isActive,
-                phone: member.phone,
-                additional_info: member.additionalInfo
-            };
+        const dbData = {
+            fingerprint_id: member.fingerprintId,
+            full_name: member.fullName,
+            nickname: member.nickname,
+            role: member.role,
+            primary_skill: member.primarySkill,
+            is_active: member.isActive,
+            phone: member.phone,
+            additional_info: member.additionalInfo
+        };
 
+        // ── Optimistic update ──────────────────────────
+        if (editingStaff) {
+            setStaffList(prev => prev.map(s => s.id === member.id ? member : s));
+        } else {
+            setStaffList(prev => [...prev, member]);
+        }
+        setShowModal(false);
+        setEditingStaff(null);
+        // ──────────────────────────────────────────────
+
+        try {
             if (editingStaff) {
-                // Update
-                const { error } = await supabase
-                    .from('staff')
-                    .update(dbData)
-                    .eq('id', member.id);
+                const { error } = await supabase.from('staff').update(dbData).eq('id', member.id);
                 if (error) throw error;
             } else {
-                // Insert — include client-generated id since table has no default
-                const { error } = await supabase
-                    .from('staff')
-                    .insert([{ id: member.id, ...dbData }]);
+                const { error } = await supabase.from('staff').insert([{ id: member.id, ...dbData }]);
                 if (error) throw error;
             }
-
-            fetchData();
-            setShowModal(false);
-            setEditingStaff(null);
         } catch (error) {
             console.error('Error saving staff:', error);
             alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล\n${error?.message || JSON.stringify(error)}`);
+            fetchData(); // Revert on error
         }
     };
 
 
     const handleDelete = async (id) => {
         if (confirm('ยืนยันการลบพนักงานคนนี้?')) {
+            setStaffList(prev => prev.filter(s => s.id !== id)); // Optimistic
             try {
-                const { error } = await supabase
-                    .from('staff')
-                    .delete()
-                    .eq('id', id);
+                const { error } = await supabase.from('staff').delete().eq('id', id);
                 if (error) throw error;
-                fetchData();
             } catch (error) {
                 console.error('Error deleting staff:', error);
                 alert('ไม่สามารถลบข้อมูลได้');
+                fetchData(); // Revert on error
             }
         }
     };

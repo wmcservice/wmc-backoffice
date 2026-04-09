@@ -78,12 +78,25 @@ export default function Scheduler({ user }) {
     };
 
     const handleSaveJob = async (job) => {
+        const isUpdate = job.id && jobs.some(j => j.id === job.id);
+        const updatedAt = new Date().toISOString();
+        const dbData = { id: job.id, qt_number: job.qtNumber, project_name: job.projectName, client_name: job.clientName, job_type: job.jobType, status: job.status, start_date: job.startDate, end_date: job.endDate, default_check_in: job.defaultCheckIn, default_check_out: job.defaultCheckOut, priority: job.priority, notes: job.notes, created_by: job.createdBy, overall_progress: job.overallProgress, current_issues: job.currentIssues, updated_at: updatedAt };
+
+        // ── Optimistic update ──────────────────────────
+        const optimisticJob = { ...job, updatedAt };
+        if (isUpdate) {
+            setJobs(prev => prev.map(j => j.id === job.id ? optimisticJob : j));
+        } else {
+            setJobs(prev => [optimisticJob, ...prev]);
+        }
+        setShowJobModal(false);
+        setEditingJob(null);
+        // ──────────────────────────────────────────────
+
         try {
-            const dbData = { id: job.id, qt_number: job.qtNumber, project_name: job.projectName, client_name: job.clientName, job_type: job.jobType, status: job.status, start_date: job.startDate, end_date: job.endDate, default_check_in: job.defaultCheckIn, default_check_out: job.defaultCheckOut, priority: job.priority, notes: job.notes, created_by: job.createdBy, overall_progress: job.overallProgress, current_issues: job.currentIssues, updated_at: new Date().toISOString() };
             let jobId = job.id;
-            const isUpdate = job.id && jobs.some(j => j.id === job.id);
             if (isUpdate) await supabase.from('jobs').update(dbData).eq('id', job.id);
-            else { const { data } = await supabase.from('jobs').insert([dbData]).select(); jobId = data[0].id; }
+            else { const { data } = await supabase.from('jobs').insert([dbData]).select(); jobId = data[0].id; setJobs(prev => prev.map(j => j.id === job.id ? { ...optimisticJob, id: jobId } : j)); }
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
             if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ id: crypto.randomUUID(), job_id: jobId, title: st.title, is_completed: st.isCompleted })));
 
@@ -101,9 +114,7 @@ export default function Scheduler({ user }) {
                     dates.push(curr.toISOString().split('T')[0]);
                     curr.setDate(curr.getDate() + 1);
                 }
-                
                 const { data: existing } = await supabase.from('allocations').select('staff_id, date').eq('job_id', jobId).in('date', dates);
-                
                 const allocInserts = [];
                 dates.forEach(dStr => {
                     const existingOnDate = (existing || []).filter(a => a.date === dStr).map(a => a.staff_id);
@@ -112,11 +123,13 @@ export default function Scheduler({ user }) {
                         allocInserts.push({ id: crypto.randomUUID(), job_id: jobId, staff_id: sid, date: dStr, status: 'ได้รับมอบหมาย' });
                     });
                 });
-
                 if (allocInserts.length > 0) await supabase.from('allocations').insert(allocInserts);
             }
-            await fetchData(); setShowJobModal(false); setEditingJob(null);
-        } catch (err) { console.error(err); alert('Save Failed'); }
+        } catch (err) {
+            console.error(err);
+            alert('Save Failed');
+            fetchData(); // Revert on error
+        }
     };
 
     const handleDuplicate = (job) => {

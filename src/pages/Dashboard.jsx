@@ -90,8 +90,9 @@ export default function Dashboard({ user }) {
     };
 
     const handleStatusChange = async (job, newStatus) => {
-        await supabase.from('jobs').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', job.id);
-        fetchData(true);
+        setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: newStatus } : j)); // Optimistic
+        const { error } = await supabase.from('jobs').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', job.id);
+        if (error) fetchData(true); // Revert on error
     };
 
     const dateRange = useMemo(() => {
