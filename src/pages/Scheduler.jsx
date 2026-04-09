@@ -95,10 +95,12 @@ export default function Scheduler({ user }) {
     const handleSaveJob = async (job) => {
         const isUpdate = job.id && jobs.some(j => j.id === job.id);
         const updatedAt = new Date().toISOString();
-        const dbData = { id: job.id, qt_number: job.qtNumber, project_name: job.projectName, client_name: job.clientName, job_type: job.jobType, status: job.status, start_date: job.startDate, end_date: job.endDate, default_check_in: job.defaultCheckIn, default_check_out: job.defaultCheckOut, priority: job.priority, notes: job.notes, created_by: job.createdBy, overall_progress: job.overallProgress, current_issues: job.currentIssues, updated_at: updatedAt };
+        const createdAt = job.createdAt || updatedAt;
+        const tempId = job.id || crypto.randomUUID();
+        const dbData = { id: isUpdate ? job.id : tempId, qt_number: job.qtNumber, project_name: job.projectName, client_name: job.clientName, job_type: job.jobType, status: job.status, start_date: job.startDate, end_date: job.endDate, default_check_in: job.defaultCheckIn, default_check_out: job.defaultCheckOut, priority: job.priority, notes: job.notes, created_by: job.createdBy, overall_progress: job.overallProgress, current_issues: job.currentIssues, updated_at: updatedAt, created_at: createdAt };
 
         // ── Optimistic update ──────────────────────────
-        const optimisticJob = { ...job, updatedAt };
+        const optimisticJob = { ...job, id: tempId, updatedAt, createdAt };
         if (isUpdate) {
             setJobs(prev => prev.map(j => j.id === job.id ? optimisticJob : j));
         } else {
@@ -109,9 +111,10 @@ export default function Scheduler({ user }) {
         // ──────────────────────────────────────────────
 
         try {
-            let jobId = job.id;
+            let jobId = isUpdate ? job.id : tempId;
             if (isUpdate) await supabase.from('jobs').update(dbData).eq('id', job.id);
-            else { const { data } = await supabase.from('jobs').insert([dbData]).select(); jobId = data[0].id; setJobs(prev => prev.map(j => j.id === job.id ? { ...optimisticJob, id: jobId } : j)); }
+            else await supabase.from('jobs').insert([dbData]);
+            
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
             if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ id: crypto.randomUUID(), job_id: jobId, title: st.title, is_completed: st.isCompleted })));
 
@@ -153,6 +156,7 @@ export default function Scheduler({ user }) {
                 }
             }
             // ─────────────────────────────────────────────────────────────
+            fetchData(true); // Force server sync after save
         } catch (err) {
             console.error(err);
             alert('Save Failed');

@@ -106,8 +106,10 @@ export default function Jobs({ user }) {
     const handleSave = async (job) => {
         const isUpdate = !!(editingJob && job.id);
         const updatedAt = new Date().toISOString();
+        const createdAt = job.createdAt || updatedAt;
+        const tempId = job.id || crypto.randomUUID();
         const dbData = {
-            id: job.id,
+            id: isUpdate ? job.id : tempId,
             qt_number: job.qtNumber || '',
             project_name: job.projectName || '',
             client_name: job.clientName || '',
@@ -124,11 +126,11 @@ export default function Jobs({ user }) {
             overall_progress: job.overallProgress || 0,
             current_issues: job.currentIssues || '',
             updated_at: updatedAt,
-            created_at: job.createdAt || updatedAt
+            created_at: createdAt
         };
 
         // ── Optimistic update ──────────────────────────
-        const optimisticJob = { ...job, updatedAt };
+        const optimisticJob = { ...job, id: tempId, updatedAt, createdAt };
         if (isUpdate) {
             setJobs(prev => prev.map(j => j.id === job.id ? optimisticJob : j));
         } else {
@@ -139,18 +141,15 @@ export default function Jobs({ user }) {
         // ──────────────────────────────────────────────
 
         try {
-            let jobId = job.id;
+            let jobId = isUpdate ? job.id : tempId;
             if (isUpdate) {
                 const { error } = await supabase.from('jobs').update(dbData).eq('id', job.id);
                 if (error) throw error;
             } else {
-                const { data, error } = await supabase.from('jobs').insert([dbData]).select();
+                const { error } = await supabase.from('jobs').insert([dbData]);
                 if (error) throw error;
-                if (!data || data.length === 0) throw new Error('No data returned from insert');
-                jobId = data[0].id;
-                // Update the temp entry with real server id
-                setJobs(prev => prev.map(j => j.id === job.id ? { ...optimisticJob, id: jobId } : j));
             }
+            
             // ── Sync staff allocations: delete removed, insert added ──────
             const newStaffIds = job.assignedStaffIds || [];
             const dates = [];
@@ -184,6 +183,9 @@ export default function Jobs({ user }) {
 
             await supabase.from('sub_tasks').delete().eq('job_id', jobId);
             if (job.subTasks?.length > 0) await supabase.from('sub_tasks').insert(job.subTasks.map(st => ({ id: crypto.randomUUID(), job_id: jobId, title: st.title, is_completed: st.isCompleted })));
+            
+            // Force server sync after save to ensure all relations (staff, subtasks) are up to date
+            fetchData(true);
         } catch (error) {
             console.error('Save error details:', error);
             alert(`บันทึกไม่สำเร็จ: ${error.message || 'Unknown error'}`);
