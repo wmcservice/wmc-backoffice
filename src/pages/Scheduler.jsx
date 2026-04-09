@@ -20,7 +20,18 @@ export default function Scheduler({ user }) {
     const [showJobModal, setShowJobModal] = useState(false);
     const [editingJob, setEditingJob] = useState(null);
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        fetchData();
+
+        // ── Realtime: auto-refresh when any device makes changes ──
+        const channel = supabase
+            .channel('scheduler-page-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => fetchData(true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'allocations' }, () => fetchData(true))
+            .subscribe();
+
+        return () => supabase.removeChannel(channel);
+    }, []);
 
     useEffect(() => {
         if (selectedJob) {

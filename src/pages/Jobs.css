@@ -405,3 +405,101 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ── Mobile Card List (hidden on desktop) ── */
+.jobs-mobile-list {
+    display: none;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.job-mobile-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 4px solid var(--text-tertiary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    cursor: pointer;
+    transition: box-shadow var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.job-mobile-card:active {
+    box-shadow: var(--shadow-md);
+}
+
+.job-mobile-card.type-install { border-left-color: #dc2626; }
+.job-mobile-card.type-move    { border-left-color: #2563eb; }
+.job-mobile-card.type-load    { border-left-color: #059669; }
+.job-mobile-card.type-warehouse { border-left-color: #7c3aed; }
+.job-mobile-card.type-prep    { border-left-color: #ea580c; }
+.job-mobile-card.type-marking { border-left-color: #db2777; }
+.job-mobile-card.type-other   { border-left-color: #4b5563; }
+
+.jmc-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.jmc-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.jmc-qt {
+    font-size: var(--font-xs);
+    color: var(--text-tertiary);
+    font-family: monospace;
+}
+
+.jmc-title strong {
+    font-size: var(--font-base);
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.jmc-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.jmc-client {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+}
+
+.jmc-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.jmc-progress {
+    font-size: var(--font-xs);
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-left: auto;
+}
+
+/* Switch between table and card on mobile */
+@media (max-width: 768px) {
+    .jobs-desktop-table {
+        display: none;
+    }
+
+    .jobs-mobile-list {
+        display: flex;
+    }
+}
+

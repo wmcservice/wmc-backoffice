@@ -459,7 +459,10 @@ button {
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
+  max-height: 90dvh; /* iOS Safari dynamic viewport */
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* smooth scroll on iOS */
+  overscroll-behavior: contain; /* prevent body scroll bleed-through */
   animation: slideUp 0.3s ease;
 }
 
@@ -860,6 +863,8 @@ tbody tr:last-child td {
     max-width: 100%;
     margin: var(--space-2);
     max-height: 95vh;
+    max-height: calc(100dvh - 32px); /* iOS Safari dynamic viewport */
+    border-radius: var(--radius-lg);
   }
 
   /* Single-column forms inside modals */

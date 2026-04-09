@@ -24,7 +24,19 @@ export default function Dashboard({ user }) {
 
     const currentDate = useMemo(() => parseISO(todayStr), [todayStr]);
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        fetchData();
+
+        // ── Realtime: auto-refresh when any device makes changes ──
+        const channel = supabase
+            .channel('dashboard-page-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => fetchData(true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'allocations' }, () => fetchData(true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'staff' }, () => fetchData(true))
+            .subscribe();
+
+        return () => supabase.removeChannel(channel);
+    }, []);
 
     useEffect(() => {
         if (selectedJob) {

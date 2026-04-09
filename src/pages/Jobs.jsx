@@ -21,7 +21,19 @@ export default function Jobs({ user }) {
     const [staff, setStaff] = useState([]);
     const [sortBy, setSortBy] = useState('newest');
 
-    useEffect(() => { fetchData(); fetchStaff(); }, []);
+    useEffect(() => {
+        fetchData();
+        fetchStaff();
+
+        // ── Realtime: auto-refresh when any device saves/edits/deletes ──
+        const channel = supabase
+            .channel('jobs-page-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => fetchData(true))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'allocations' }, () => fetchData(true))
+            .subscribe();
+
+        return () => supabase.removeChannel(channel);
+    }, []);
 
     useEffect(() => {
         if (detailJob) {
@@ -223,7 +235,9 @@ export default function Jobs({ user }) {
                 <select className="select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="ทุกสถานะ">ทุกสถานะ</option>{JOB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select>
                 <select className="select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option value="ทุกประเภท">ทุกประเภท</option>{JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
             </div>
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+
+            {/* Desktop Table */}
+            <div className="card jobs-desktop-table" style={{ padding: 0, overflow: 'hidden' }}>
                 <div className="table-wrapper"><table className="jobs-table"><thead><tr>
                     <th style={thStyle} onClick={() => handleSort('qt')}>เลขที่ QT{sortArrow('qt')}</th>
                     <th style={thStyle} onClick={() => handleSort('name')}>ชื่อโปรเจกต์{sortArrow('name')}</th>
@@ -248,6 +262,39 @@ export default function Jobs({ user }) {
                     </tr>
                 ))}</tbody></table></div>
             </div>
+
+            {/* Mobile Card List */}
+            <div className="jobs-mobile-list">
+                {filtered.map(job => (
+                    <div
+                        key={job.id}
+                        className={`job-mobile-card type-${jobTypeToKey(job.jobType)}`}
+                        onClick={() => { setDetailJob(job); setShowDetailModal(true); }}
+                    >
+                        <div className="jmc-top">
+                            <div className="jmc-title">
+                                <span className="jmc-qt">{job.qtNumber || '-'}</span>
+                                <strong>{job.projectName}</strong>
+                                {job.currentIssues && <span style={{ color: '#d97706' }}>⚠️</span>}
+                            </div>
+                            <div className="jmc-actions" onClick={e => e.stopPropagation()}>
+                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setEditingJob(job); setShowModal(true); }}><Edit3 size={16} /></button>
+                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { if (confirm('ลบ?')) { setJobs(prev => prev.filter(j => j.id !== job.id)); supabase.from('jobs').delete().eq('id', job.id).then(({ error }) => { if (error) { alert('ลบไม่สำเร็จ'); fetchData(true); } }); } }}><Trash2 size={16} /></button>
+                            </div>
+                        </div>
+                        <div className="jmc-client">{job.clientName}</div>
+                        <div className="jmc-meta">
+                            <span className={`job-type-badge type-${jobTypeToKey(job.jobType)}`}>{job.jobType}</span>
+                            <span className={`badge badge-${statusToKey(job.status)}`}>{job.status}</span>
+                            <span className="jmc-progress">{job.overallProgress}%</span>
+                        </div>
+                    </div>
+                ))}
+                {filtered.length === 0 && (
+                    <div className="empty-state"><p>ไม่พบรายการงาน</p></div>
+                )}
+            </div>
+
             {showModal && <JobModal job={editingJob} staff={staff} clientSuggestions={uniqueClients} onSave={handleSave} onClose={() => { setShowModal(false); setEditingJob(null); }} />}
             {showDetailModal && detailJob && <JobDetailModal job={detailJob} staff={staff} user={user} onClose={() => setShowDetailModal(false)} onUpdate={() => fetchData(true)} onEdit={() => { setEditingJob(detailJob); setShowModal(true); setShowDetailModal(false); }} onDuplicate={() => handleDuplicate(detailJob)} />}
         </div>

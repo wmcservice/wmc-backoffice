@@ -28,6 +28,15 @@ export default function Staff() {
 
     useEffect(() => {
         fetchData();
+
+        // ── Realtime: auto-refresh when any device makes changes ──
+        const channel = supabase
+            .channel('staff-page-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'staff' }, () => fetchData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'allocations' }, () => fetchData())
+            .subscribe();
+
+        return () => supabase.removeChannel(channel);
     }, []);
 
     const fetchData = async () => {

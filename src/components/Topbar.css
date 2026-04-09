@@ -304,3 +304,9 @@
         display: none;
     }
 }
+
+@media (max-width: 480px) {
+    .search-box {
+        display: none;
+    }
+}
