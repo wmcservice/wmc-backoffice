@@ -410,19 +410,19 @@
 .jobs-mobile-list {
     display: none;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-3);
 }
 
 .job-mobile-card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-left: 4px solid var(--text-tertiary);
+    border-left: 4px solid transparent;
     border-radius: var(--radius-md);
-    padding: 10px 12px 0 12px;
+    padding: var(--space-3);
     cursor: pointer;
-    transition: box-shadow var(--transition-fast);
+    transition: all var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
-    overflow: hidden;
+    font-size: var(--font-xs);
 }
 
 .job-mobile-card:active {
@@ -439,109 +439,68 @@
 
 .jmc-top {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
 }
 
 .jmc-title {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    min-width: 0;
-}
-
-.jmc-name-row {
+    font-weight: 700;
+    font-size: var(--font-sm);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     display: flex;
     align-items: center;
     gap: 6px;
-}
-
-.jmc-name-row strong {
-    font-size: 14px;
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--text-primary);
-}
-
-.jmc-sub-row {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    color: var(--text-tertiary);
-}
-
-.jmc-qt {
-    font-family: monospace;
-    color: var(--text-tertiary);
-    font-size: 11px;
-}
-
-.jmc-sep {
-    opacity: 0.4;
-}
-
-.jmc-client-inline {
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 1;
 }
 
 .jmc-actions {
     display: flex;
-    gap: 0;
+    gap: 2px;
     flex-shrink: 0;
-    margin-top: -4px;
 }
 
 .jmc-meta {
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
 }
 
-.jmc-dates {
+.jmc-qt {
     font-size: 11px;
     color: var(--text-tertiary);
-    margin-left: auto;
-    white-space: nowrap;
+    font-family: monospace;
 }
 
-/* Progress bar at bottom of card */
-.jmc-progress-bar-wrap {
+.jmc-type {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.jmc-progress-inline {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--brand-primary);
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+    margin-left: auto;
+}
+
+.jmc-client {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 6px;
-    margin: 0 -12px;
-    padding: 6px 12px;
-    border-top: 1px solid var(--border-primary);
-    background: var(--bg-secondary);
-}
-
-.jmc-progress-bar {
-    flex: 1;
-    height: 4px;
-    background: var(--brand-primary);
-    border-radius: 2px;
-    min-width: 4px;
-    max-width: 100%;
-    transition: width 0.3s ease;
-}
-
-.jmc-progress-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-secondary);
-    min-width: 28px;
-    text-align: right;
 }
 
 /* Switch between table and card on mobile */
@@ -554,5 +513,6 @@
         display: flex;
     }
 }
+
 
 

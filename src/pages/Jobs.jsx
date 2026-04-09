@@ -289,37 +289,30 @@ export default function Jobs({ user }) {
                     >
                         <div className="jmc-top">
                             <div className="jmc-title">
-                                <div className="jmc-name-row">
-                                    <strong>{job.projectName}</strong>
-                                    {job.currentIssues && <span style={{ color: '#d97706', fontSize: '14px' }}>⚠️</span>}
-                                </div>
-                                <div className="jmc-sub-row">
-                                    {job.qtNumber && <span className="jmc-qt">{job.qtNumber}</span>}
-                                    <span className="jmc-sep">·</span>
-                                    <span className="jmc-client-inline">{job.clientName}</span>
-                                </div>
+                                {job.projectName}
+                                {job.currentIssues && <span style={{ color: '#d97706', fontSize: '14px', marginLeft: '6px' }}>⚠️</span>}
                             </div>
                             <div className="jmc-actions" onClick={e => e.stopPropagation()}>
-                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setEditingJob(job); setShowModal(true); }}><Edit3 size={15} /></button>
-                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { if (confirm('ลบ?')) { setJobs(prev => prev.filter(j => j.id !== job.id)); supabase.from('jobs').delete().eq('id', job.id).then(({ error }) => { if (error) { alert('ลบไม่สำเร็จ'); fetchData(true); } }); } }}><Trash2 size={15} /></button>
+                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setEditingJob(job); setShowModal(true); }}><Edit3 size={16} /></button>
+                                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { if (confirm('ลบ?')) { setJobs(prev => prev.filter(j => j.id !== job.id)); supabase.from('jobs').delete().eq('id', job.id).then(({ error }) => { if (error) { alert('ลบไม่สำเร็จ'); fetchData(true); } }); } }}><Trash2 size={16} /></button>
                             </div>
                         </div>
                         <div className="jmc-meta">
-                            <span className={`badge badge-${statusToKey(job.status)}`}>{job.status}</span>
-                            <span className={`job-type-badge type-${jobTypeToKey(job.jobType)}`}>{job.jobType}</span>
-                            <span className="jmc-dates">{job.startDate ? job.startDate.slice(5).replace('-', '/') : ''}{job.endDate && job.endDate !== job.startDate ? ` – ${job.endDate.slice(5).replace('-', '/')}` : ''}</span>
+                            {job.qtNumber && <span className="jmc-qt">{job.qtNumber}</span>}
+                            <span className="jmc-type">{job.jobType}</span>
+                            <span className="jmc-progress-inline">{job.overallProgress}%</span>
+                            <span className={`badge badge-${statusToKey(job.status)}`} style={{ marginLeft: 'auto' }}>{job.status}</span>
                         </div>
-                        <div className="jmc-progress-bar-wrap">
-                            <div className="jmc-progress-bar" style={{ width: `${job.overallProgress || 0}%` }} />
-                            <span className="jmc-progress-label">{job.overallProgress || 0}%</span>
+                        <div className="jmc-client">
+                            {job.clientName}
                         </div>
                     </div>
                 ))}
                 {filtered.length === 0 && (
                     <div className="empty-state"><p>ไม่พบรายการงาน</p></div>
-
                 )}
             </div>
+
 
             {showModal && <JobModal job={editingJob} staff={staff} clientSuggestions={uniqueClients} onSave={handleSave} onClose={() => { setShowModal(false); setEditingJob(null); }} />}
             {showDetailModal && detailJob && <JobDetailModal job={detailJob} staff={staff} user={user} onClose={() => setShowDetailModal(false)} onUpdate={() => fetchData(true)} onEdit={() => { setEditingJob(detailJob); setShowModal(true); setShowDetailModal(false); }} onDuplicate={() => handleDuplicate(detailJob)} />}
