@@ -1,0 +1,193 @@
+/* ── Job Calendar Styles ── */
+
+.calendar-card {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 180px);
+    border: 1px solid var(--border-primary);
+    background: var(--card-bg);
+}
+
+.calendar-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.calendar-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    min-width: 150px;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.calendar-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+}
+
+.weekday {
+    padding: var(--space-2);
+    text-align: center;
+    font-weight: 700;
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+}
+
+.calendar-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    /* Custom scrollbar for inner calendar */
+    scrollbar-width: thin;
+}
+
+.calendar-row {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    min-height: 120px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.calendar-row:last-child {
+    border-bottom: none;
+}
+
+.calendar-day {
+    border-right: 1px solid var(--border-primary);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    transition: background-color 0.2s;
+}
+
+.calendar-day:last-child {
+    border-right: none;
+}
+
+.calendar-day.disabled {
+    background: var(--bg-secondary);
+    opacity: 0.6;
+}
+
+.calendar-day.today {
+    background: rgba(37, 99, 235, 0.04);
+}
+
+.calendar-day.today .calendar-day-num {
+    background: var(--brand-primary);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.calendar-day-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 4px;
+}
+
+.calendar-day-num {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.calendar-day-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    max-height: 100px; /* Optional, prevent extreme overflow */
+    scrollbar-width: none;
+}
+.calendar-day-content::-webkit-scrollbar {
+    display: none;
+}
+
+/* Base Job Pill */
+.calendar-job-pill {
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.calendar-job-pill:hover {
+    transform: scale(1.02);
+    opacity: 0.9;
+}
+
+/* Job Types Colors (Sync with Jobs.css) */
+.calendar-job-pill.type-install { background-color: #dc2626; }
+.calendar-job-pill.type-move { background-color: #2563eb; }
+.calendar-job-pill.type-load { background-color: #059669; }
+.calendar-job-pill.type-warehouse { background-color: #7c3aed; }
+.calendar-job-pill.type-prep { background-color: #ea580c; }
+.calendar-job-pill.type-marking { background-color: #db2777; }
+.calendar-job-pill.type-other { background-color: #4b5563; }
+
+@media (max-width: 768px) {
+    .calendar-card {
+        height: calc(100vh - 140px);
+    }
+    
+    .calendar-day {
+        padding: 2px;
+    }
+    
+    .calendar-day-header {
+        margin-bottom: 2px;
+        justify-content: center;
+    }
+    
+    .calendar-job-pill {
+        font-size: 10px;
+        padding: 2px 4px;
+        border-radius: 2px;
+    }
+    
+    .calendar-title {
+        font-size: 1rem;
+        min-width: 120px;
+    }
+    
+    .weekday {
+        padding: var(--space-1);
+        font-size: 11px;
+    }
+}

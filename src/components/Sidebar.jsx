@@ -10,12 +10,14 @@ import {
     ChevronLeft,
     ChevronRight,
     HardHat,
+    CalendarDays
 } from 'lucide-react';
 import './Sidebar.css';
 
 const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'แดชบอร์ด' },
     { path: '/jobs', icon: ClipboardList, label: 'จัดการงาน' },
+    { path: '/job-calendar', icon: CalendarDays, label: 'ปฏิทินงาน' },
     { path: '/scheduler', icon: Calendar, label: 'ตารางงาน' },
     { path: '/staff', icon: Users, label: 'พนักงาน' },
     { path: '/performance', icon: BarChart3, label: 'ประสิทธิภาพ' },

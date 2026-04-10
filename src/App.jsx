@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import Dashboard from './pages/Dashboard';
 import Jobs from './pages/Jobs';
+import JobCalendar from './pages/JobCalendar';
 import Scheduler from './pages/Scheduler';
 import StaffPage from './pages/Staff';
 import Performance from './pages/Performance';
@@ -68,6 +69,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard user={session.user} />} />
             <Route path="/jobs" element={<Jobs user={session.user} />} />
+            <Route path="/job-calendar" element={<JobCalendar user={session.user} />} />
             <Route path="/scheduler" element={<Scheduler user={session.user} />} />
             <Route path="/staff" element={<StaffPage />} />
             <Route path="/performance" element={<Performance />} />
