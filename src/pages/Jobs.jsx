@@ -14,6 +14,8 @@ export default function Jobs({ user }) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('ทุกสถานะ');
     const [typeFilter, setTypeFilter] = useState('ทุกประเภท');
+    const [dateFilterMode, setDateFilterMode] = useState('ทั้งหมด');
+    const [dateFilterValue, setDateFilterValue] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingJob, setEditingJob] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
@@ -215,7 +217,24 @@ export default function Jobs({ user }) {
 
     const uniqueClients = useMemo(() => [...new Set(jobs.map(j => j.clientName).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th')), [jobs]);
     const filtered = useMemo(() => {
-        let result = jobs.filter(j => (!search || (j.projectName || '').toLowerCase().includes(search.toLowerCase()) || (j.clientName || '').toLowerCase().includes(search.toLowerCase()) || (j.qtNumber || '').toLowerCase().includes(search.toLowerCase())) && (statusFilter === 'ทุกสถานะ' || j.status === statusFilter) && (typeFilter === 'ทุกประเภท' || j.jobType === typeFilter));
+        let result = jobs.filter(j => {
+            const matchSearch = !search || (j.projectName || '').toLowerCase().includes(search.toLowerCase()) || (j.clientName || '').toLowerCase().includes(search.toLowerCase()) || (j.qtNumber || '').toLowerCase().includes(search.toLowerCase());
+            const matchStatus = statusFilter === 'ทุกสถานะ' || j.status === statusFilter;
+            const matchType = typeFilter === 'ทุกประเภท' || j.jobType === typeFilter;
+            let matchDate = true;
+            if (dateFilterMode !== 'ทั้งหมด' && dateFilterValue) {
+                const sDate = j.startDate || '';
+                const eDate = j.endDate || sDate;
+                if (dateFilterMode === 'วัน') {
+                    matchDate = (sDate <= dateFilterValue && eDate >= dateFilterValue);
+                } else if (dateFilterMode === 'เดือน') {
+                    const monthStart = dateFilterValue + '-01';
+                    const monthEnd = dateFilterValue + '-31';
+                    matchDate = (sDate <= monthEnd && eDate >= monthStart);
+                }
+            }
+            return matchSearch && matchStatus && matchType && matchDate;
+        });
         switch (sortBy) {
             case 'name-asc': result.sort((a, b) => (a.projectName || '').localeCompare(b.projectName || '', 'th')); break;
             case 'name-desc': result.sort((a, b) => (b.projectName || '').localeCompare(a.projectName || '', 'th')); break;
@@ -231,7 +250,7 @@ export default function Jobs({ user }) {
             case 'newest': default: result.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')); break;
         }
         return result;
-    }, [jobs, search, statusFilter, typeFilter, sortBy]);
+    }, [jobs, search, statusFilter, typeFilter, dateFilterMode, dateFilterValue, sortBy]);
 
     const handleSort = (col) => {
         if (sortBy === col + '-asc') setSortBy(col + '-desc');
@@ -252,6 +271,17 @@ export default function Jobs({ user }) {
             </div>
             <div className="filters-bar">
                 <div className="search-input"><Search size={16} /><input type="text" placeholder="ค้นหา..." className="input" value={search} onChange={e => setSearch(e.target.value)} /></div>
+
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <select className="select" value={dateFilterMode} onChange={e => { setDateFilterMode(e.target.value); setDateFilterValue(''); }}>
+                        <option value="ทั้งหมด">ทุกเวลา</option>
+                        <option value="เดือน">เฉพาะเดือน</option>
+                        <option value="วัน">เฉพาะวัน</option>
+                    </select>
+                    {dateFilterMode === 'เดือน' && <input type="month" className="input" style={{ width: '130px' }} value={dateFilterValue} onChange={e => setDateFilterValue(e.target.value)} />}
+                    {dateFilterMode === 'วัน' && <input type="date" className="input" style={{ width: '130px' }} value={dateFilterValue} onChange={e => setDateFilterValue(e.target.value)} />}
+                </div>
+
                 <select className="select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="ทุกสถานะ">ทุกสถานะ</option>{JOB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select>
                 <select className="select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option value="ทุกประเภท">ทุกประเภท</option>{JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
             </div>
