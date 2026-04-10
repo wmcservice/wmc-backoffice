@@ -221,6 +221,8 @@ export default function Jobs({ user }) {
             case 'name-desc': result.sort((a, b) => (b.projectName || '').localeCompare(a.projectName || '', 'th')); break;
             case 'client-asc': result.sort((a, b) => (a.clientName || '').localeCompare(b.clientName || '', 'th')); break;
             case 'client-desc': result.sort((a, b) => (b.clientName || '').localeCompare(a.clientName || '', 'th')); break;
+            case 'date-asc': result.sort((a, b) => (a.startDate || '').localeCompare(b.startDate || '')); break;
+            case 'date-desc': result.sort((a, b) => (b.startDate || '').localeCompare(a.startDate || '')); break;
             case 'progress-asc': result.sort((a, b) => (a.overallProgress || 0) - (b.overallProgress || 0)); break;
             case 'progress-desc': result.sort((a, b) => (b.overallProgress || 0) - (a.overallProgress || 0)); break;
             case 'qt-asc': result.sort((a, b) => (a.qtNumber || '').localeCompare(b.qtNumber || '')); break;
@@ -260,6 +262,7 @@ export default function Jobs({ user }) {
                     <th style={thStyle} onClick={() => handleSort('qt')}>เลขที่ QT{sortArrow('qt')}</th>
                     <th style={thStyle} onClick={() => handleSort('name')}>ชื่อโปรเจกต์{sortArrow('name')}</th>
                     <th style={thStyle} onClick={() => handleSort('client')}>ลูกค้า{sortArrow('client')}</th>
+                    <th style={thStyle} onClick={() => handleSort('date')}>วันที่{sortArrow('date')}</th>
                     <th>ประเภท</th>
                     <th style={thStyle} onClick={() => handleSort('progress')}>คืบหน้า{sortArrow('progress')}</th>
                     <th>สถานะ</th>
@@ -269,6 +272,10 @@ export default function Jobs({ user }) {
                         <td style={{ fontFamily: 'monospace' }}>{job.qtNumber || '-'}</td>
                         <td><strong>{job.projectName}</strong>{job.currentIssues && <span title={job.currentIssues} style={{ marginLeft: '6px', color: '#d97706', cursor: 'help' }}>⚠️</span>}</td>
                         <td>{job.clientName}</td>
+                        <td style={{ whiteSpace: 'nowrap', fontSize: '0.9em', color: '#555' }}>
+                            {job.startDate ? formatDate(job.startDate) : '-'}
+                            {job.endDate && job.endDate !== job.startDate ? ` - ${formatDate(job.endDate)}` : ''}
+                        </td>
                         <td><span className={`job-type-badge type-${jobTypeToKey(job.jobType)}`}>{job.jobType}</span></td>
                         <td>{job.overallProgress}%</td>
                         <td><span className={`badge badge-${statusToKey(job.status)}`}>{job.status}</span></td>
@@ -302,6 +309,9 @@ export default function Jobs({ user }) {
                         <div className="jmc-meta">
                             {job.qtNumber && <span className="jmc-qt">{job.qtNumber}</span>}
                             <span className="jmc-type">{job.jobType}</span>
+                            <span style={{ fontSize: '0.85em', color: '#666', marginLeft: '6px' }}>
+                                {job.startDate ? formatDate(job.startDate) : ''}
+                            </span>
                             <span className="jmc-progress-inline">{job.overallProgress}%</span>
                             <span className={`badge badge-${statusToKey(job.status)}`} style={{ marginLeft: 'auto' }}>{job.status}</span>
                         </div>
